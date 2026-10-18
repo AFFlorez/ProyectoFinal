@@ -27,7 +27,7 @@ python -m venv .venv
 | 14 | Entrenamiento de regresión lineal, Random Forest y XGBoost para las tres historias: nueve ajustes nuevos. | Train; parada de XGBoost con validation. |
 | 15 | Métricas y gráficas de los baselines que se acaban de entrenar. | Comparación en validación. |
 | 16 | Definición de las estructuras LSTM y GRU. | Sin entrenamiento todavía. |
-| 17 | Entrenamiento de 38 redes globales y 15 locales. | Ajuste con train, checkpoints con validation. |
+| 17 | Entrenamiento de 41 redes globales y 15 locales. | Ajuste con train, checkpoints con validation. |
 | 18 | Comparación completa y detalle municipal. | Validación. |
 | 19 | Selección provisional, discusión y limitaciones. | Validación. |
 | **20** | **Evaluación y análisis final al cerrar la selección. Desactivado por defecto.** | Solo se abre evaluación al activarlo explícitamente. |
@@ -67,11 +67,11 @@ La gráfica inicial muestra ahora únicamente Valle del Cauca, porque los CSV re
 
 La matriz prueba LSTM y GRU con una capa de 32 unidades y Dense16 como referencia; sin Dense intermedia; Dropout de 0,20 y 0,50; dos capas 32→16 con Dropout de 0,20; y tres capas 32→16→8 con Dropout de 0,20. Cada estructura se prueba con 12, 16 y 20 semanas.
 
-También se entrenan las referencias LSTM de 64 unidades y de dos capas de 32, ambas con historia de 16 semanas, y una LSTM local por municipio e historia. Son **53 ajustes de redes**: 38 globales y 15 locales. Las cinco redes locales de cada historia forman un enfoque para la comparación. Junto con los nueve baselines, quedan **50 enfoques** en la tabla de validación. Se mantiene una semilla y configuración por receta, sin búsqueda exhaustiva.
+También se entrenan las referencias LSTM de 64 unidades y de dos capas de 32, ambas con historia de 16 semanas, y una LSTM local por municipio e historia. Añadimos además LSTM16 + Dense8 sin Dropout para las historias de 12, 16 y 20 semanas. Son **56 ajustes de redes**: 41 globales y 15 locales. Las cinco redes locales de cada historia forman un enfoque para la comparación. Junto con los nueve baselines, quedan **53 enfoques** en la tabla de validación. Se mantiene una semilla y configuración por receta, sin búsqueda exhaustiva.
 
 Las redes utilizan semilla 42, Adam con tasa inicial de 0,001, lotes de 32, hasta 100 épocas y `shuffle=False`. EarlyStopping conserva los pesos con menor MSE de validación y detiene el ajuste tras 10 épocas sin mejora. ReduceLROnPlateau reduce la tasa tras 5 épocas sin mejora. Una menor pérdida transformada no garantiza un menor MAE en casos.
 
-El punto 14 crea una carpeta nueva en `ResultadosModelos/entrenamiento_en_notebook/ejecucion_*`. Allí se guardan configuración, escaladores y codificador actuales, modelos entrenados, historiales, predicciones de train/validation, métricas generales y municipales, figuras y discusión. El criterio principal es MAE de validación sin redondear; RMSE se informa por separado. Las conclusiones se generan con las métricas de la sesión, sin un ganador ni errores fijados de antemano.
+El punto 14 crea una carpeta nueva en `ResultadosModelos/entrenamiento_en_notebook/ejecucion_*`. Allí se guardan configuración, escaladores y codificador actuales, modelos entrenados, historiales, predicciones de train/validation, métricas generales y municipales, figuras y discusión, incluida la comparación de LSTM16 + Dense8 con LSTM32 + Dense16 por historia. El criterio principal es MAE de validación sin redondear; RMSE se informa por separado. Las conclusiones se generan con las métricas de la sesión, sin un ganador ni errores fijados de antemano.
 
 `modelado_notebook.py` contiene las utilidades para construir ventanas, definir redes, invertir transformaciones, calcular métricas, dibujar y exportar. El notebook contiene y ejecuta los ajustes predictivos. `exploracion_temporal.py` se conserva como historial y no se importa en el flujo actual.
 

@@ -92,7 +92,7 @@ def construir_secuencias(entrenamiento, validacion, columnas, codificador,
 
 
 def catalogo_redes():
-    """41 enfoques recurrentes, entrenados mediante 53 redes individuales."""
+    """44 enfoques recurrentes, entrenados mediante 56 redes individuales."""
     filas=[]
     for familia in ['LSTM','GRU']:
         for v in HISTORIAS:
@@ -105,6 +105,10 @@ def catalogo_redes():
         nombre='→'.join(map(str,unidades))
         filas.append(dict(ID=f'lstm_adicional_{codigo}_v16',FAMILIA='LSTM',RECETA=codigo,
             HISTORIA=16,NOMBRE=f'LSTM {nombre} · Dense16 · D0 · 16s',TIPO='red',CONFIG=cfg,MATRIZ=False))
+    for v in HISTORIAS:
+        filas.append(dict(ID=f'lstm_compacta16_8_v{v}',FAMILIA='LSTM',RECETA='compacta16_8',
+            HISTORIA=v,NOMBRE=f'LSTM 16 · Dense8 · D0 · {v}s',TIPO='red',
+            CONFIG=dict(unidades=[16],dense=8,dropout=0.),MATRIZ=False))
     for v in HISTORIAS:
         filas.append(dict(ID=f'local_v{v}',FAMILIA='LSTM local',RECETA='referencia local',
             HISTORIA=v,NOMBRE=f'LSTM local (5 redes) · {v}s',TIPO='local',
@@ -327,6 +331,20 @@ def graficar_desarrollo(pred,general,municipal,ranking,catalogo,ruta,mostrar=Tru
                 ejes.flat[0].legend(fontsize=8)
                 fig.suptitle(f'{familia} · Historia de {v} semanas · Seis estructuras · Entrenamiento y validación')
                 guardar(fig,f'curvas_{familia.lower()}_{v}')
+        fig,ejes=plt.subplots(1,len(HISTORIAS),figsize=(15,4.5),constrained_layout=True)
+        for eje,v in zip(np.atleast_1d(ejes),HISTORIAS):
+            for receta,color,nombre in [('referencia','#8D4CA6','LSTM32 + Dense16'),
+                                        ('compacta16_8','#238A76','LSTM16 + Dense8')]:
+                spec=next(r for r in catalogo if r['ID']==f'lstm_{receta}_v{v}')
+                h=pd.read_csv(spec['HISTORIAL'],encoding='utf-8-sig')
+                eje.plot(h['EPOCA'],h['loss'],color=color,label=f'{nombre} · train')
+                eje.plot(h['EPOCA'],h['val_loss'],color=color,linestyle='--',label=f'{nombre} · validación')
+            eje.set(title=f'Historia de {v} semanas',xlabel='Época',ylabel='MSE de CASOS_std')
+            eje.grid(alpha=.2)
+        handles,labels=np.atleast_1d(ejes)[0].get_legend_handles_labels()
+        fig.legend(handles,labels,loc='outside lower center',ncol=2,fontsize=8)
+        fig.suptitle('LSTM16 + Dense8 frente a LSTM32 + Dense16 · Sin Dropout · Objetivo t+4')
+        guardar(fig,'11_lstm_16_dense8')
         fig,ejes=plt.subplots(2,2,figsize=(15,10),constrained_layout=True)
         for fila,familia in enumerate(['LSTM','GRU']):
             g=ranking.loc[ranking['FAMILIA'].eq(familia)&ranking['RECETA'].isin(RECETAS)]
@@ -388,7 +406,9 @@ def conclusiones_desarrollo(ranking,municipal,catalogo):
     for f in ['LSTM','GRU']:
         for v in HISTORIAS:
             base=ranking.loc[ranking['ID'].eq(f'{f.lower()}_referencia_v{v}')].iloc[0]
-            for receta in ['sin_dense','drop20','drop50','dos_capas','tres_capas']:
+            variantes=['sin_dense','drop20','drop50','dos_capas','tres_capas']
+            if f=='LSTM':variantes.append('compacta16_8')
+            for receta in variantes:
                 nuevo=ranking.loc[ranking['ID'].eq(f'{f.lower()}_{receta}_v{v}')].iloc[0]
                 cambio=100*(base['MAE']-nuevo['MAE'])/base['MAE']
                 lecturas.append({'FAMILIA':f,'HISTORIA':v,'RECETA':receta,'MAE_REFERENCIA':base['MAE'],'MAE_VARIANTE':nuevo['MAE'],
@@ -397,11 +417,17 @@ def conclusiones_desarrollo(ranking,municipal,catalogo):
     drop=cambios.loc[cambios['RECETA'].isin(['drop20','drop50'])]
     profundas=cambios.loc[cambios['RECETA'].isin(['dos_capas','tres_capas'])]
     simples=cambios.loc[cambios['RECETA'].eq('sin_dense')]
+    compactas=cambios.loc[cambios['RECETA'].eq('compacta16_8')]
+    detalle_compactas='; '.join(
+        f"{int(r.HISTORIA)} semanas: MAE {r.MAE_VARIANTE:.3f} frente a {r.MAE_REFERENCIA:.3f} de la referencia"
+        for r in compactas.sort_values('HISTORIA').itertuples())
     mus=municipal.loc[municipal['CONJUNTO'].eq('validation')&municipal['ID'].eq(mae['ID'])]
     menor=mus.loc[mus['MAE'].idxmin()];mayor=mus.loc[mus['MAE'].idxmax()]
     texto=f"""**Con qué modelo seguiríamos por ahora.** El menor MAE de las {len(ranking)} configuraciones corresponde a **{mae['MODELO']}**: **{mae['MAE']:.3f} casos**, con RMSE de {mae['RMSE']:.3f}. Elegimos provisionalmente ese modelo porque fijamos MAE como criterio principal. Si miramos solo RMSE, el mínimo es de **{rmse['MODELO']}** ({rmse['RMSE']:.3f}). Ambos errores están expresados en casos de la semana t+4.
 
 **LSTM, GRU y la cantidad de historia.** {'; '.join(referencias)}. Todas las historias tuvieron los mismos {int(catalogo[0]['N_ENTRENAMIENTO']):,} ejemplos de entrenamiento y {int(mae['N'])} objetivos de validación. Por tanto, la comparación cambia la información disponible dentro de cada ventana, sin añadir más fechas de entrenamiento a una opción.
+
+**Qué pasó al reducir la red a LSTM16 y Dense8.** {detalle_compactas}. La variante reducida obtuvo un menor MAE en {int(compactas['MEJORA_MAE_PCT'].gt(0).sum())} de las {len(compactas)} historias. Ambas estructuras conservan el one-hot municipal, la salida de una neurona y Dropout en cero. Cambiamos a la vez las unidades LSTM y las neuronas de la Dense intermedia: esta comparación evalúa la estructura completa y no permite separar el efecto de cada reducción. Tener menos parámetros no demuestra por sí solo que haya menos sobreajuste.
 
 **Qué aportaron Dropout y las capas.** Añadir únicamente Dropout redujo el MAE frente a la referencia en **{int(drop['MEJORA_MAE_PCT'].gt(0).sum())} de las {len(drop)} variantes**. Las estructuras de dos o tres capas con Dropout lo redujeron en **{int(profundas['MEJORA_MAE_PCT'].gt(0).sum())} de {len(profundas)}**, y quitar la Dense intermedia, en **{int(simples['MEJORA_MAE_PCT'].gt(0).sum())} de {len(simples)}**. Cada variante se contrasta con su propia familia e historia. Las redes profundas cambian a la vez capas y Dropout: estos resultados no aíslan el efecto de cada cambio. La tabla siguiente permite revisar dónde mejoró o empeoró cada estructura; mejora porcentual positiva significa menor MAE y cambio de RMSE negativo significa menor RMSE.
 
