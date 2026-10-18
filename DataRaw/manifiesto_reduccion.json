@@ -1,0 +1,379 @@
+{
+  "fecha_utc": "2026-10-18T04:13:36.810496+00:00",
+  "departamento": "76",
+  "columnas": [
+    "COD_DPTO_O",
+    "COD_MUN_O",
+    "SEMANA",
+    "ANO",
+    "INI_SIN"
+  ],
+  "formato": "CSV UTF-8 con BOM",
+  "limpieza_fechas_o_municipios_aplicada": false,
+  "se_conservan_duplicados_y_orden": true,
+  "bytes_originales": 1092230750,
+  "bytes_reducidos": 12095060,
+  "archivos": [
+    {
+      "ano_archivo": 2007,
+      "original": "Datos_2007_210.xlsx",
+      "reducido": "Datos_2007_210.csv",
+      "filas_originales": 35074,
+      "filas_valle": 577,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 21213685,
+      "bytes_reducido": 24106,
+      "sha256_original": "9a6e8847af35cd1be5ec494562c790830f058e49c1b783757854443cc7de688f",
+      "sha256_reducido": "a860073465858f1cff5db67109edcba1f3407be7fcfa747afa8164552fb31486",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2008,
+      "original": "Datos_2008_210.xlsx",
+      "reducido": "Datos_2008_210.csv",
+      "filas_originales": 32793,
+      "filas_valle": 1909,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 20545446,
+      "bytes_reducido": 79615,
+      "sha256_original": "e550c7ff0467a79d2ccc530d9fe3a320242b35ddee3dd43131f2818c35d060e7",
+      "sha256_reducido": "8f8865ee371fe7de88e8cb078290837a8524fd57590876a44a7207b8b7080845",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2009,
+      "original": "Datos_2009_210.xlsx",
+      "reducido": "Datos_2009_210.csv",
+      "filas_originales": 45345,
+      "filas_valle": 10139,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 28424462,
+      "bytes_reducido": 422785,
+      "sha256_original": "3464d6d9639bb9eef353eb184a32b2f432442c66ef2fde035b6472f369face9d",
+      "sha256_reducido": "205de0e2722b6dc3e66f80d1acdc0c81960ee4981e252a51d1a2e9068cd8b086",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2010,
+      "original": "Datos_2010_210.xlsx",
+      "reducido": "Datos_2010_210.csv",
+      "filas_originales": 147224,
+      "filas_valle": 19079,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 92600459,
+      "bytes_reducido": 795425,
+      "sha256_original": "ad60638306d230926a1656081b83fbb02f598c97fce101fd74ac546caf828a2e",
+      "sha256_reducido": "70aaf220ef5d82c103f40559fbcc027ea5c322f715c87bdbfe1952620f8e236e",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2011,
+      "original": "Datos_2011_210.xlsx",
+      "reducido": "Datos_2011_210.csv",
+      "filas_originales": 29386,
+      "filas_valle": 2567,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 18402670,
+      "bytes_reducido": 107080,
+      "sha256_original": "bd2843e0bfe30680e23788fa62dd0a882cf2c7b8fbf942c82f302b4b3a3d6e40",
+      "sha256_reducido": "a71bbc5eedd8e133fe3c60a4751c4ad97db92cad2b9b173a40b511420d519958",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2012,
+      "original": "Datos_2012_210.xlsx",
+      "reducido": "Datos_2012_210.csv",
+      "filas_originales": 52467,
+      "filas_valle": 2985,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 33194283,
+      "bytes_reducido": 124501,
+      "sha256_original": "353733f6b8cc91ef62b6fa3c7e459ca40be7e4b38151a068d92776bef0f2b932",
+      "sha256_reducido": "0ffdb17ab0d58e06990ad79ca1001fe8f009222473fdc8bcba03c4e4f2302d04",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2013,
+      "original": "Datos_2013_210.xlsx",
+      "reducido": "Datos_2013_210.csv",
+      "filas_originales": 122441,
+      "filas_valle": 21963,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 78688641,
+      "bytes_reducido": 915936,
+      "sha256_original": "df4f72a1f100cdecde69b1d2ee51c8ac6c29b48a21d6bee81668f1cdf7e36eca",
+      "sha256_reducido": "b3e9bdb8abe14292792009fe98e0783efb389dd859f300aeba85ee3d4aac6683",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2014,
+      "original": "Datos_2014_210.xlsx",
+      "reducido": "Datos_2014_210.csv",
+      "filas_originales": 105356,
+      "filas_valle": 10190,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 66332677,
+      "bytes_reducido": 424789,
+      "sha256_original": "1078cf4fa93beaccdb683e5e3cb1a45788fbf349d924915c483e32ee02073073",
+      "sha256_reducido": "26404c9353e208a234ea265563406c4610416440dcd6f4a33f0b65a96251404a",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2015,
+      "original": "Datos_2015_210.xlsx",
+      "reducido": "Datos_2015_210.csv",
+      "filas_originales": 95023,
+      "filas_valle": 19818,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 60358679,
+      "bytes_reducido": 826135,
+      "sha256_original": "2c0c52525f53a8c4b6d1e6ed868e2164feef7bdc453b4b7074a5831c670e8ee4",
+      "sha256_reducido": "538a22809fbbb5e6615f3ed9ef9035d9f1675a2c1f1743f56cecb59fcbe2d870",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2016,
+      "original": "Datos_2016_210.xlsx",
+      "reducido": "Datos_2016_210.csv",
+      "filas_originales": 100117,
+      "filas_valle": 25730,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 63358116,
+      "bytes_reducido": 1072667,
+      "sha256_original": "08a534ef90c7eea144711713431befee23087ce63d91b3a085d991c3f41009b3",
+      "sha256_reducido": "fca5823f65712852d4711356447e2563f818305ca83c86d3db605940791a117c",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2017,
+      "original": "Datos_2017_210.xlsx",
+      "reducido": "Datos_2017_210.csv",
+      "filas_originales": 25048,
+      "filas_valle": 4859,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 15511139,
+      "bytes_reducido": 202635,
+      "sha256_original": "fcc9449a4952e9599daf4322f94ed6a1eaee81cc107e86261ad3b122b6036611",
+      "sha256_reducido": "ba993154e603d37a699ed0567ac21cd563b376af8aadefcd861c38672ffe6a83",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2018,
+      "original": "Datos_2018_210.xlsx",
+      "reducido": "Datos_2018_210.csv",
+      "filas_originales": 43652,
+      "filas_valle": 2284,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 27580489,
+      "bytes_reducido": 95262,
+      "sha256_original": "9ae73f2fbdbb138b2c4c96a869191ccc7f5c226351993e8660c755a31262040f",
+      "sha256_reducido": "a44a38e446432fe6e2026ce48f605d4d312d377e090259cd55d9cf5ca3c03fba",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2019,
+      "original": "Datos_2019_210.xlsx",
+      "reducido": "Datos_2019_210.csv",
+      "filas_originales": 123641,
+      "filas_valle": 7378,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 79694751,
+      "bytes_reducido": 307814,
+      "sha256_original": "c6812ec4b554a4d779e84cbb5434677817db82aa58934b1617ab7909526c85fd",
+      "sha256_reducido": "edb7bb9285fbd291eed1134930b420fb25faa165a72a99f08e94005ec34ef7b5",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2020,
+      "original": "Datos_2020_210.xlsx",
+      "reducido": "Datos_2020_210.csv",
+      "filas_originales": 76419,
+      "filas_valle": 28300,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 49951819,
+      "bytes_reducido": 1179756,
+      "sha256_original": "73657c66e710a8da55ba63ed753d7fbdaee088f0dcdff1712fbb4b8f8a4ece16",
+      "sha256_reducido": "abb473d5f2b49471aa2472a0549b028755112d3eddef4fed6620a3f7daf9ce40",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2021,
+      "original": "Datos_2021_210.xlsx",
+      "reducido": "Datos_2021_210.csv",
+      "filas_originales": 49325,
+      "filas_valle": 8444,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 32028221,
+      "bytes_reducido": 352153,
+      "sha256_original": "d0772643263fc791c27d9e39d2506388a373f21c7771041fc1d1e5962e5f4aa8",
+      "sha256_reducido": "e7161f3ac3eb70527eec09a136f3e8a6bb83f8c5f8970ad153366e1ae3f37457",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2022,
+      "original": "Datos_2022_210.xlsx",
+      "reducido": "Datos_2022_210.csv",
+      "filas_originales": 65691,
+      "filas_valle": 4216,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 42904894,
+      "bytes_reducido": 175811,
+      "sha256_original": "c6d8ea22af23008e0bbc1dd8758d062e2415401ee20dd5ecbfc7c670dd307c26",
+      "sha256_reducido": "d24e2635ba670bc64294eff38c45bf3fd6b249e4ff638d8cf09fbe241fc82656",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2023,
+      "original": "Datos_2023_210.xlsx",
+      "reducido": "Datos_2023_210.csv",
+      "filas_originales": 126411,
+      "filas_valle": 23983,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 81984060,
+      "bytes_reducido": 1000700,
+      "sha256_original": "115f382e15915c5a029337ce1401b6300d3057802a7810c47fdd399861272cfb",
+      "sha256_reducido": "1a6ba12dd7b42fad9c8a9c25e0587d04a79cef6c15e9c61c1f18fe1664930e71",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2024,
+      "original": "Datos_2024_210.xlsx",
+      "reducido": "Datos_2024_210.csv",
+      "filas_originales": 309627,
+      "filas_valle": 88110,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 200825056,
+      "bytes_reducido": 3673667,
+      "sha256_original": "b84f9c798d40ec7d0ca3d7e8bbbf6c1a992c21e76b2a043a6dab3f5b75c163da",
+      "sha256_reducido": "a64573b1ce71a3e0b3ad55d2a2a40335756b51d42c63b6c326728b13a248becc",
+      "valores_releidos_identicos": true
+    },
+    {
+      "ano_archivo": 2025,
+      "original": "Datos_2025_210.xlsx",
+      "reducido": "Datos_2025_210.csv",
+      "filas_originales": 120564,
+      "filas_valle": 7538,
+      "columnas": [
+        "COD_DPTO_O",
+        "COD_MUN_O",
+        "SEMANA",
+        "ANO",
+        "INI_SIN"
+      ],
+      "bytes_original": 78631203,
+      "bytes_reducido": 314223,
+      "sha256_original": "c9a75f551d47c357f78916f9897505df52549f09a8449bd74eb6e4e09db64e56",
+      "sha256_reducido": "b9bcc890ba7de6d4d1985a1cde3d6dbf5e20e64cc8343aefcefc7625f4507094",
+      "valores_releidos_identicos": true
+    }
+  ]
+}

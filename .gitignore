@@ -218,3 +218,57 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Proyecto de dengue: insumos y archivos generados que se mantienen localmente.
+# Estas reglas no eliminan archivos ya registrados ni su historial en Git.
+# Solo versionar los CSV reducidos y su registro de conversión.
+/DataRaw/*
+!/DataRaw/Datos_*_210.csv
+!/DataRaw/manifiesto_reduccion.json
+!/DataRaw/resumen_reduccion.csv
+/DataRawOriginal/
+/ShapeMunicipios/
+/DatosProcesados/
+/ResultadosModelos/
+/training.csv
+/validation.csv
+/test.csv
+
+# Entorno local de Jupyter, ejecuciones de revisión y cachés.
+/.jupyter-local/
+
+# Modelos, escaladores, tensores y copias de datos fuera de las carpetas anteriores.
+*.keras
+*.h5
+*.hdf5
+*.joblib
+*.pkl
+*.pickle
+*.ubj
+*.npy
+*.npz
+*.parquet
+*.feather
+
+# Archivos comprimidos de datos y respaldos.
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+
+# Archivos temporales del editor y del sistema.
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Se conservan el notebook principal, los scripts, las dependencias,
+# la documentación y MunicipiosValledelCauca.csv (catálogo pequeño).
+/ShapeMunicipios/CLIMA_DENGUE_VALLE-20261012T225252Z-1-001.zip
+/ShapeMunicipios/SHP_MGN2018_INTGRD_MPIO.zip
+/ShapeMunicipios/SHP_MGN2018_INTGRD_MPIO/

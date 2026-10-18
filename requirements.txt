@@ -1,0 +1,10 @@
+# Herramientas base del proyecto. Añadir aquí las librerías de análisis que usemos.
+jupyterlab
+ipykernel
+pandas
+python-calamine
+matplotlib
+numpy
+scikit-learn
+tensorflow
+xgboost
