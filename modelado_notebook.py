@@ -17,8 +17,18 @@ from xgboost import XGBRegressor
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-HISTORIAS = (12, 16, 20)
+HISTORIAS = (8, 12, 16, 20, 24)
 HORIZONTE = 4
+EPOCAS_MAX = 200
+PACIENCIA_ES = 20
+RECETAS_64 = {
+    'B64': {'unidades':[64], 'dense':16, 'dropout':0.},
+    '64_dense16_drop20': {'unidades':[64], 'dense':16, 'dropout':.2},
+    '64_dense8': {'unidades':[64], 'dense':8, 'dropout':0.},
+    '64_dense8_drop20': {'unidades':[64], 'dense':8, 'dropout':.2},
+    '64_sin_dense': {'unidades':[64], 'dense':0, 'dropout':0.},
+    '64_sin_dense_drop20': {'unidades':[64], 'dense':0, 'dropout':.2},
+}
 RECETAS = {
     'referencia': {'unidades':[32], 'dense':16, 'dropout':0., 'descripcion':'32 · Dense16 · D0'},
     'sin_dense': {'unidades':[32], 'dense':0, 'dropout':0., 'descripcion':'32 · sin Dense intermedia'},
@@ -92,19 +102,28 @@ def construir_secuencias(entrenamiento, validacion, columnas, codificador,
 
 
 def catalogo_redes():
-    """44 enfoques recurrentes, entrenados mediante 56 redes individuales."""
+    """85 enfoques LSTM: 70 globales y 15 conjuntos de cinco redes locales."""
     filas=[]
-    for familia in ['LSTM','GRU']:
+    for familia in ['LSTM']:
         for v in HISTORIAS:
             for receta,cfg in RECETAS.items():
                 filas.append(dict(ID=f'{familia.lower()}_{receta}_v{v}',FAMILIA=familia,
                     RECETA=receta,HISTORIA=v,NOMBRE=f'{familia} {cfg["descripcion"]} · {v}s',
                     TIPO='red',CONFIG=cfg.copy(),MATRIZ=True))
-    for codigo,unidades in [('B64',[64]),('D32x2',[32,32])]:
-        cfg=dict(unidades=unidades,dense=16,dropout=0.)
-        nombre='→'.join(map(str,unidades))
-        filas.append(dict(ID=f'lstm_adicional_{codigo}_v16',FAMILIA='LSTM',RECETA=codigo,
-            HISTORIA=16,NOMBRE=f'LSTM {nombre} · Dense16 · D0 · 16s',TIPO='red',CONFIG=cfg,MATRIZ=False))
+    for receta,cfg in RECETAS_64.items():
+        for v in HISTORIAS:
+            prefijo='lstm_adicional_B64' if receta=='B64' else f'lstm_{receta}'
+            intermedia=f'Dense{cfg["dense"]}' if cfg['dense'] else 'sin Dense intermedia'
+            dropout=str(cfg['dropout']).replace('.',',')
+            filas.append(dict(ID=f'{prefijo}_v{v}',FAMILIA='LSTM',RECETA=receta,
+                HISTORIA=v,NOMBRE=f'LSTM 64 · {intermedia} · D{dropout} · {v}s',
+                TIPO='red',CONFIG=cfg.copy(),MATRIZ=False))
+    for codigo,unidades in [('D32x2',[32,32])]:
+        for v in HISTORIAS:
+            cfg=dict(unidades=unidades,dense=16,dropout=0.)
+            nombre='→'.join(map(str,unidades))
+            filas.append(dict(ID=f'lstm_adicional_{codigo}_v{v}',FAMILIA='LSTM',RECETA=codigo,
+                HISTORIA=v,NOMBRE=f'LSTM {nombre} · Dense16 · D0 · {v}s',TIPO='red',CONFIG=cfg,MATRIZ=False))
     for v in HISTORIAS:
         filas.append(dict(ID=f'lstm_compacta16_8_v{v}',FAMILIA='LSTM',RECETA='compacta16_8',
             HISTORIA=v,NOMBRE=f'LSTM 16 · Dense8 · D0 · {v}s',TIPO='red',
@@ -113,6 +132,11 @@ def catalogo_redes():
         filas.append(dict(ID=f'local_v{v}',FAMILIA='LSTM local',RECETA='referencia local',
             HISTORIA=v,NOMBRE=f'LSTM local (5 redes) · {v}s',TIPO='local',
             CONFIG=dict(unidades=[32],dense=16,dropout=0.),MATRIZ=False))
+    for receta,unidades,dense in [('compacta16_8',16,8),('compacta8_4',8,4)]:
+        for v in HISTORIAS:
+            filas.append(dict(ID=f'local_{receta}_v{v}',FAMILIA='LSTM local',RECETA=receta,
+                HISTORIA=v,NOMBRE=f'LSTM local {unidades} · Dense{dense} (5 redes) · {v}s',TIPO='local',
+                CONFIG=dict(unidades=[unidades],dense=dense,dropout=0.),MATRIZ=False))
     return filas
 
 
@@ -121,9 +145,9 @@ def nueva_ejecucion(preprocesamiento, columnas, catalogo):
     for sub in ['modelos','tablas','figuras']:
         (ruta/sub).mkdir(parents=True,exist_ok=False)
     config=dict(fecha_utc=datetime.now(timezone.utc).isoformat(),historias=HISTORIAS,horizonte=HORIZONTE,
-        semilla=42,criterio_seleccion='MAE de validación en casos originales',epochs_max=100,
-        batch_size=32,learning_rate=.001,early_stopping=10,reduce_lr=5,
-        recetas=RECETAS,xgboost=CONFIG_XGB,redes=catalogo,columnas=columnas,
+        semilla=42,criterio_seleccion='MAE de validación en casos originales',epochs_max=EPOCAS_MAX,
+        batch_size=32,learning_rate=.001,early_stopping=PACIENCIA_ES,reduce_lr=5,
+        recetas=RECETAS,recetas_64=RECETAS_64,xgboost=CONFIG_XGB,redes=catalogo,columnas=columnas,
         entrenamientos_anteriores_reutilizados=False,evaluacion_activada=False)
     (ruta/'configuracion.json').write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding='utf-8')
     joblib.dump(preprocesamiento,ruta/'preprocesamiento_actual.joblib',compress=3)
@@ -142,8 +166,7 @@ def crear_red(spec,n_variables,n_municipios):
     historia=tf.keras.Input(shape=(spec['HISTORIA'],n_variables),name='historia')
     z=historia
     for i,unidades in enumerate(cfg['unidades']):
-        Capa=tf.keras.layers.GRU if spec['FAMILIA']=='GRU' else tf.keras.layers.LSTM
-        z=Capa(unidades,return_sequences=i<len(cfg['unidades'])-1,
+        z=tf.keras.layers.LSTM(unidades,return_sequences=i<len(cfg['unidades'])-1,
             dropout=0.,recurrent_dropout=0.,name=f'recurrente_{i+1}')(z)
         if cfg['dropout']:
             z=tf.keras.layers.Dropout(cfg['dropout'],seed=42+i,name=f'dropout_{i+1}')(z)
@@ -197,7 +220,7 @@ def resumir_predicciones(predicciones,catalogo):
 
 def graficar_baselines(predicciones,ranking,ruta):
     fig,ejes=plt.subplots(1,2,figsize=(12,5),constrained_layout=True)
-    colores=['#8398A6','#176B93','#D97628']
+    colores=[plt.get_cmap('viridis')(i) for i in np.linspace(.15,.85,len(HISTORIAS))]
     for eje,metrica in zip(ejes,['MAE','RMSE']):
         ranking.pivot(index='FAMILIA',columns='HISTORIA',values=metrica).plot.barh(ax=eje,color=colores)
         eje.set(title=metrica,xlabel=f'{metrica} (casos)',ylabel='');eje.grid(axis='x',alpha=.2)
@@ -241,7 +264,7 @@ def exportar_resultados_actuales(ruta,pred,general,municipal,ranking,catalogo,se
         f'Esta ejecución contiene {len(catalogo)} enfoques entrenados desde cero en el notebook. '
         'Las secuencias y los escaladores proceden de sus puntos 12 y 13; no se recuperaron resultados de otras corridas. '
         'Cada resultado se calcula después del ajuste: los baselines se entrenan en el punto 14 y las redes en el 17. '
-        'La comparación utiliza solo entrenamiento y validación. La evaluación final permanece desactivada.\n\n'
+        'La comparación de desarrollo utiliza solo entrenamiento y validación. El test se consulta en el bloque final del notebook.\n\n'
         'Los modelos están en modelos/, las métricas y predicciones en tablas/ y las gráficas en figuras/. '
         'Las rutas del catálogo corresponden únicamente a esta ejecución.\n',encoding='utf-8')
 
@@ -308,142 +331,101 @@ def resumir_validacion(ranking):
 
 
 def graficar_desarrollo(pred,general,municipal,ranking,catalogo,ruta,mostrar=True):
+    """Figuras de los entrenamientos y de validación, con historias variables."""
     rutas=[]
     def guardar(fig,nombre):
-        for ext in ['png','svg']:fig.savefig(Path(ruta)/'figuras'/f'{nombre}.{ext}',dpi=300,bbox_inches='tight')
+        for ext in ['png','svg']:
+            fig.savefig(Path(ruta)/'figuras'/f'{nombre}.{ext}',dpi=220,bbox_inches='tight')
         rutas.append(nombre)
         if mostrar:plt.show()
         else:plt.close(fig)
-    colores_historia={12:'#8398A6',16:'#176B93',20:'#D97628'}
-    color_familia={'LSTM':'#8D4CA6','GRU':'#D97628','Regresión lineal':'#176B93','Random Forest':'#238A76','XGBoost':'#BE4256','LSTM local':'#788D9D'}
-    with plt.rc_context({'font.size':9,'svg.fonttype':'none'}):
-        for v in HISTORIAS:
-            for familia in ['LSTM','GRU']:
-                fig,ejes=plt.subplots(3,2,figsize=(12,10),constrained_layout=True)
-                for eje,receta in zip(ejes.flat,RECETAS):
-                    spec=next(r for r in catalogo if r['HISTORIA']==v and r['FAMILIA']==familia and r['RECETA']==receta)
-                    h=pd.read_csv(spec['HISTORIAL'],encoding='utf-8-sig')
-                    mejor=int(h.loc[h['val_loss'].idxmin(),'EPOCA'])
-                    eje.plot(h['EPOCA'],h['loss'],label='Entrenamiento',color='#176B93')
-                    eje.plot(h['EPOCA'],h['val_loss'],label='Validación',color='#D97628')
-                    eje.axvline(mejor,linestyle='--',color='#777777',label='Mejor época')
-                    eje.set(title=RECETAS[receta]['descripcion'],xlabel='Época',ylabel='MSE de CASOS_std');eje.grid(alpha=.2)
-                ejes.flat[0].legend(fontsize=8)
-                fig.suptitle(f'{familia} · Historia de {v} semanas · Seis estructuras · Entrenamiento y validación')
-                guardar(fig,f'curvas_{familia.lower()}_{v}')
-        fig,ejes=plt.subplots(1,len(HISTORIAS),figsize=(15,4.5),constrained_layout=True)
-        for eje,v in zip(np.atleast_1d(ejes),HISTORIAS):
-            for receta,color,nombre in [('referencia','#8D4CA6','LSTM32 + Dense16'),
-                                        ('compacta16_8','#238A76','LSTM16 + Dense8')]:
-                spec=next(r for r in catalogo if r['ID']==f'lstm_{receta}_v{v}')
-                h=pd.read_csv(spec['HISTORIAL'],encoding='utf-8-sig')
-                eje.plot(h['EPOCA'],h['loss'],color=color,label=f'{nombre} · train')
-                eje.plot(h['EPOCA'],h['val_loss'],color=color,linestyle='--',label=f'{nombre} · validación')
-            eje.set(title=f'Historia de {v} semanas',xlabel='Época',ylabel='MSE de CASOS_std')
+    colores_historia={v:plt.get_cmap('viridis')(i) for v,i in zip(HISTORIAS,np.linspace(.15,.85,len(HISTORIAS)))}
+    colores_familia={'LSTM':'#8D4CA6','LSTM local':'#238A76','Regresión lineal':'#176B93',
+        'Random Forest':'#B45309','XGBoost':'#BE4256'}
+    for v in HISTORIAS:
+        fig,ejes=plt.subplots(3,2,figsize=(12,10),constrained_layout=True)
+        for eje,receta in zip(ejes.flat,RECETAS):
+            spec=next(s for s in catalogo if s['ID']==f'lstm_{receta}_v{v}')
+            h=pd.read_csv(spec['HISTORIAL'],encoding='utf-8-sig')
+            eje.plot(h.EPOCA,h.loss,label='Entrenamiento',color='#176B93')
+            eje.plot(h.EPOCA,h.val_loss,label='Validación',color='#B45309')
+            eje.axvline(h.loc[h.val_loss.idxmin(),'EPOCA'],linestyle='--',color='#777777',label='Mejor época')
+            eje.set(title=RECETAS[receta]['descripcion'],xlabel='Época',ylabel='MSE transformado')
             eje.grid(alpha=.2)
-        handles,labels=np.atleast_1d(ejes)[0].get_legend_handles_labels()
-        fig.legend(handles,labels,loc='outside lower center',ncol=2,fontsize=8)
-        fig.suptitle('LSTM16 + Dense8 frente a LSTM32 + Dense16 · Sin Dropout · Objetivo t+4')
-        guardar(fig,'11_lstm_16_dense8')
-        fig,ejes=plt.subplots(2,2,figsize=(15,10),constrained_layout=True)
-        for fila,familia in enumerate(['LSTM','GRU']):
-            g=ranking.loc[ranking['FAMILIA'].eq(familia)&ranking['RECETA'].isin(RECETAS)]
-            for eje,metrica in zip(ejes[fila],['MAE','RMSE']):
-                tabla=g.pivot(index='RECETA',columns='HISTORIA',values=metrica).reindex(list(RECETAS))
-                tabla.index=[RECETAS[r]['descripcion'] for r in tabla.index]
-                tabla.rename(columns={v:f'{v} semanas' for v in HISTORIAS}).plot.barh(ax=eje,color=list(colores_historia.values()))
-                eje.set(title=f'{familia} · {metrica}',xlabel=f'{metrica} (casos)',ylabel='');eje.grid(axis='x',alpha=.2)
-        handles,labels=ejes[0,0].get_legend_handles_labels()
-        for eje in ejes.flat:eje.get_legend().remove()
-        fig.legend(handles,labels,loc='outside lower center',ncol=3,title='Historia')
-        fig.suptitle('36 combinaciones recurrentes · Misma cobertura · Validación · Objetivo t+4')
-        guardar(fig,'07_matriz_arquitecturas_historias')
-        fig,ejes=plt.subplots(1,2,figsize=(16,9),constrained_layout=True)
-        g=ranking.head(15).iloc[::-1]
-        for eje,metrica in zip(ejes,['MAE','RMSE']):
-            b=eje.barh(g['MODELO'],g[metrica],color=[color_familia[f] for f in g['FAMILIA']])
-            eje.bar_label(b,fmt='%.2f',padding=4);eje.set(title=metrica,xlabel=f'{metrica} (casos)',xlim=(0,g[metrica].max()*1.2))
-            eje.grid(axis='x',alpha=.2)
-        fig.suptitle('Quince menores MAE de validación · Cada fila conserva su RMSE · Selección de desarrollo')
-        guardar(fig,'08_ranking_validacion_top15')
-        elegidos=[]
-        for familia in ['LSTM','GRU','Regresión lineal','Random Forest','XGBoost']:
-            g=ranking.loc[ranking['FAMILIA'].eq(familia)]
-            elegidos.append(g.loc[g['MAE'].idxmin(),'ID'])
-        fig,ejes=plt.subplots(5,1,figsize=(14,13),constrained_layout=True)
-        val=pred.loc[pred['CONJUNTO'].eq('validation')]
-        for eje,(codigo,g) in zip(ejes,val.groupby('COD_DANE',observed=True,sort=True)):
-            real=g.loc[g['ID'].eq(elegidos[0])].sort_values('FECHA_OBJETIVO')
-            eje.plot(real['FECHA_OBJETIVO'],real['CASOS_ORIGINALES'],color='#252525',label='Observado',linewidth=1.5)
-            for identificador in elegidos:
-                p=g.loc[g['ID'].eq(identificador)].sort_values('FECHA_OBJETIVO')
-                eje.plot(p['FECHA_OBJETIVO'],p['CASOS_PREDICHOS'],label=p['MODELO'].iloc[0],color=color_familia[p['FAMILIA'].iloc[0]],linewidth=1.05)
-            loc=mdates.AutoDateLocator(minticks=5,maxticks=8);eje.xaxis.set_major_locator(loc);eje.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
-            eje.set(title=g['MUNICIPIO'].iloc[0],ylabel='Casos',xlabel='Inicio de la semana objetivo t+4');eje.grid(alpha=.2)
-        h,l=ejes[0].get_legend_handles_labels();fig.legend(h,l,loc='outside lower center',ncol=2,fontsize=8)
-        fig.suptitle('Solo validación · Menor MAE general de cada familia\nMismos modelos para todos los municipios; selección dentro de desarrollo')
-        guardar(fig,'09_series_solo_validacion')
-        fig,ejes=plt.subplots(1,2,figsize=(12,5),constrained_layout=True)
-        base=ranking.loc[ranking['FAMILIA'].isin(['Regresión lineal','Random Forest','XGBoost'])]
-        for eje,metrica in zip(ejes,['MAE','RMSE']):
-            base.pivot(index='FAMILIA',columns='HISTORIA',values=metrica).rename(columns={v:f'{v} semanas' for v in HISTORIAS}).plot.barh(ax=eje,color=list(colores_historia.values()))
-            eje.set(title=metrica,xlabel=f'{metrica} (casos)',ylabel='');eje.grid(axis='x',alpha=.2)
-        h,l=ejes[0].get_legend_handles_labels()
-        for eje in ejes:eje.get_legend().remove()
-        fig.legend(h,l,loc='outside lower center',ncol=3)
-        fig.suptitle('Baselines · Historias de 12, 16 y 20 semanas · Solo validación · t+4')
-        guardar(fig,'10_baselines_historias_validacion')
+        ejes.flat[0].legend(fontsize=8)
+        fig.suptitle(f'LSTM global · {v} semanas de historia · Entrenamiento y validación')
+        guardar(fig,f'curvas_lstm_{v}')
+
+    fig,ejes=plt.subplots(1,len(HISTORIAS),figsize=(20,4.5),constrained_layout=True)
+    for eje,v in zip(np.atleast_1d(ejes),HISTORIAS):
+        for receta,color,nombre in [('referencia','#8D4CA6','LSTM32 + Dense16'),('compacta16_8','#238A76','LSTM16 + Dense8')]:
+            spec=next(s for s in catalogo if s['ID']==f'lstm_{receta}_v{v}')
+            h=pd.read_csv(spec['HISTORIAL'],encoding='utf-8-sig')
+            eje.plot(h.EPOCA,h.loss,color=color,label=f'{nombre} · train')
+            eje.plot(h.EPOCA,h.val_loss,color=color,linestyle='--',label=f'{nombre} · validación')
+        eje.set(title=f'{v} semanas',xlabel='Época',ylabel='MSE transformado')
+        eje.grid(alpha=.2)
+    h,l=np.atleast_1d(ejes)[0].get_legend_handles_labels()
+    fig.legend(h,l,loc='outside lower center',ncol=2,fontsize=8)
+    fig.suptitle('LSTM16 + Dense8 frente a LSTM32 + Dense16 · Sin Dropout · t+4')
+    guardar(fig,'11_lstm_16_dense8')
+
+    fig,ejes=plt.subplots(1,2,figsize=(16,6),constrained_layout=True)
+    g=ranking.loc[ranking.FAMILIA.eq('LSTM')&ranking.RECETA.isin(RECETAS)]
+    for eje,metrica in zip(ejes,['MAE','RMSE']):
+        tabla=g.pivot(index='RECETA',columns='HISTORIA',values=metrica).reindex(list(RECETAS))
+        tabla.index=[RECETAS[r]['descripcion'] for r in tabla.index]
+        tabla.plot.barh(ax=eje,color=list(colores_historia.values()))
+        eje.set(title=metrica,xlabel=f'{metrica} (casos)',ylabel='')
+        eje.grid(axis='x',alpha=.2)
+        eje.get_legend().remove()
+    h,l=ejes[0].get_legend_handles_labels()
+    fig.legend(h,l,loc='outside lower center',ncol=len(HISTORIAS),title='Historia (semanas)')
+    fig.suptitle('LSTM globales · Seis estructuras y cinco historias · Solo validación')
+    guardar(fig,'07_matriz_arquitecturas_historias')
+
+    fig,ejes=plt.subplots(1,2,figsize=(16,9),constrained_layout=True)
+    g=ranking.head(15).iloc[::-1]
+    for eje,metrica in zip(ejes,['MAE','RMSE']):
+        barras=eje.barh(g.MODELO,g[metrica],color=[colores_familia[f] for f in g.FAMILIA])
+        eje.bar_label(barras,fmt='%.2f',padding=4)
+        eje.set(title=metrica,xlabel=f'{metrica} (casos)',xlim=(0,g[metrica].max()*1.2))
+        eje.grid(axis='x',alpha=.2)
+    fig.suptitle('Quince menores MAE de validación · Cada fila conserva su RMSE')
+    guardar(fig,'08_ranking_validacion_top15')
+
+    mejores=ranking.groupby('FAMILIA',sort=False).head(1)
+    ids=mejores.ID.tolist()
+    val=pred.loc[pred.CONJUNTO.eq('validation')]
+    fig,ejes=plt.subplots(5,1,figsize=(14,13),constrained_layout=True)
+    for eje,(_,g) in zip(ejes,val.groupby('COD_DANE',observed=True,sort=True)):
+        reales=g.loc[g.ID.eq(ids[0])].sort_values('FECHA_OBJETIVO')
+        eje.plot(reales.FECHA_OBJETIVO,reales.CASOS_ORIGINALES,color='#252525',label='Observado',linewidth=1.5)
+        for r in mejores.itertuples():
+            p=g.loc[g.ID.eq(r.ID)].sort_values('FECHA_OBJETIVO')
+            eje.plot(p.FECHA_OBJETIVO,p.CASOS_PREDICHOS,label=r.MODELO,color=colores_familia[r.FAMILIA],linewidth=1.1)
+        loc=mdates.AutoDateLocator(minticks=4,maxticks=7)
+        eje.xaxis.set_major_locator(loc)
+        eje.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
+        eje.set(title=reales.MUNICIPIO.iloc[0],ylabel='Casos',xlabel='Semana objetivo t+4')
+        eje.grid(alpha=.2)
+    h,l=ejes[0].get_legend_handles_labels()
+    fig.legend(h,l,loc='outside lower center',ncol=2,fontsize=8)
+    fig.suptitle('Solo validación · Menor MAE general por familia · Mismos modelos para los cinco municipios')
+    guardar(fig,'09_series_solo_validacion')
+
+    fig,ejes=plt.subplots(1,2,figsize=(13,5),constrained_layout=True)
+    g=ranking.loc[ranking.FAMILIA.isin(['Regresión lineal','Random Forest','XGBoost'])]
+    for eje,metrica in zip(ejes,['MAE','RMSE']):
+        g.pivot(index='FAMILIA',columns='HISTORIA',values=metrica).plot.barh(ax=eje,color=list(colores_historia.values()))
+        eje.set(title=metrica,xlabel=f'{metrica} (casos)',ylabel='')
+        eje.grid(axis='x',alpha=.2)
+        eje.get_legend().remove()
+    h,l=ejes[0].get_legend_handles_labels()
+    fig.legend(h,l,loc='outside lower center',ncol=len(HISTORIAS),title='Historia (semanas)')
+    fig.suptitle('Baselines · Cinco historias · Solo validación · t+4')
+    guardar(fig,'10_baselines_historias_validacion')
     return rutas
-
-
-def conclusiones_desarrollo(ranking,municipal,catalogo,seleccion=None):
-    mae=ranking.loc[ranking['MAE'].idxmin()];rmse=ranking.loc[ranking['RMSE'].idxmin()]
-    elegido=mae if seleccion is None else ranking.loc[ranking['ID'].eq(seleccion['ID_ELEGIDO'])].iloc[0]
-    motivo='Menor MAE general de validación.' if seleccion is None else seleccion.get('motivo_eleccion','Menor MAE general de validación.')
-    diferencia_mae=elegido['MAE']-mae['MAE']
-    diferencia_rmse=elegido['RMSE']-mae['RMSE']
-    referencias=[]
-    for f in ['LSTM','GRU']:
-        g=ranking.loc[ranking['FAMILIA'].eq(f)];r=g.loc[g['MAE'].idxmin()]
-        referencias.append(f"{f}: {r['MODELO']} (MAE {r['MAE']:.3f}, RMSE {r['RMSE']:.3f})")
-    lecturas=[]
-    for f in ['LSTM','GRU']:
-        for v in HISTORIAS:
-            base=ranking.loc[ranking['ID'].eq(f'{f.lower()}_referencia_v{v}')].iloc[0]
-            variantes=['sin_dense','drop20','drop50','dos_capas','tres_capas']
-            if f=='LSTM':variantes.append('compacta16_8')
-            for receta in variantes:
-                nuevo=ranking.loc[ranking['ID'].eq(f'{f.lower()}_{receta}_v{v}')].iloc[0]
-                cambio=100*(base['MAE']-nuevo['MAE'])/base['MAE']
-                lecturas.append({'FAMILIA':f,'HISTORIA':v,'RECETA':receta,'MAE_REFERENCIA':base['MAE'],'MAE_VARIANTE':nuevo['MAE'],
-                    'MEJORA_MAE_PCT':cambio,'CAMBIO_RMSE':nuevo['RMSE']-base['RMSE']})
-    cambios=pd.DataFrame(lecturas)
-    drop=cambios.loc[cambios['RECETA'].isin(['drop20','drop50'])]
-    profundas=cambios.loc[cambios['RECETA'].isin(['dos_capas','tres_capas'])]
-    simples=cambios.loc[cambios['RECETA'].eq('sin_dense')]
-    compactas=cambios.loc[cambios['RECETA'].eq('compacta16_8')]
-    detalle_compactas='; '.join(
-        f"{int(r.HISTORIA)} semanas: MAE {r.MAE_VARIANTE:.3f} frente a {r.MAE_REFERENCIA:.3f} de la referencia"
-        for r in compactas.sort_values('HISTORIA').itertuples())
-    mus=municipal.loc[municipal['CONJUNTO'].eq('validation')&municipal['ID'].eq(elegido['ID'])]
-    menor=mus.loc[mus['MAE'].idxmin()];mayor=mus.loc[mus['MAE'].idxmax()]
-    texto=f"""**Con qué modelo seguiríamos por ahora.** El modelo elegido para continuar es **{elegido['MODELO']}**, con **MAE {elegido['MAE']:.3f} casos** y **RMSE {elegido['RMSE']:.3f}** en validación. {motivo} La elección se registra desde el punto 18.2 y se mantiene para los cinco municipios.
-
-**Qué diferencia tiene frente a los mínimos observados.** El menor MAE de las {len(ranking)} configuraciones sigue correspondiendo a **{mae['MODELO']}**: MAE {mae['MAE']:.3f} y RMSE {mae['RMSE']:.3f}. La diferencia del elegido respecto a él es de {diferencia_mae:+.3f} casos en MAE y {diferencia_rmse:+.3f} en RMSE. El mínimo general de RMSE es de **{rmse['MODELO']}** ({rmse['RMSE']:.3f}). Estos resultados distinguen la preferencia por una arquitectura regularizada de la elección automática por MAE. Dropout puede ayudar a regularizar el entrenamiento, pero esta ejecución no demuestra por sí sola que vaya a generalizar mejor a otros periodos.
-
-**LSTM, GRU y la cantidad de historia.** Las referencias de menor MAE por familia son: {'; '.join(referencias)}. Todas las historias tuvieron los mismos {int(catalogo[0]['N_ENTRENAMIENTO']):,} ejemplos de entrenamiento y {int(mae['N'])} objetivos de validación. Por tanto, la comparación cambia la información disponible dentro de cada ventana, sin añadir más fechas de entrenamiento a una opción. Estas referencias se conservan para contrastar el modelo elegido.
-
-**Qué pasó al reducir la red a LSTM16 y Dense8.** {detalle_compactas}. La variante reducida obtuvo un menor MAE en {int(compactas['MEJORA_MAE_PCT'].gt(0).sum())} de las {len(compactas)} historias. Ambas estructuras conservan el one-hot municipal, la salida de una neurona y Dropout en cero. Cambiamos a la vez las unidades LSTM y las neuronas de la Dense intermedia: esta comparación evalúa la estructura completa y no permite separar el efecto de cada reducción. Tener menos parámetros no demuestra por sí solo que haya menos sobreajuste.
-
-**Qué aportaron Dropout y las capas.** Añadir únicamente Dropout redujo el MAE frente a la referencia en **{int(drop['MEJORA_MAE_PCT'].gt(0).sum())} de las {len(drop)} variantes**. Las estructuras de dos o tres capas con Dropout lo redujeron en **{int(profundas['MEJORA_MAE_PCT'].gt(0).sum())} de {len(profundas)}**, y quitar la Dense intermedia, en **{int(simples['MEJORA_MAE_PCT'].gt(0).sum())} de {len(simples)}**. Cada variante se contrasta con su propia familia e historia. Las redes profundas cambian a la vez capas y Dropout: estos resultados no aíslan el efecto de cada cambio. La tabla siguiente permite revisar dónde mejoró o empeoró cada estructura; mejora porcentual positiva significa menor MAE y cambio de RMSE negativo significa menor RMSE.
-
-**Cómo cambia el error entre municipios.** En **{elegido['MODELO']}**, el MAE municipal va de {menor['MAE']:.3f} en {menor['MUNICIPIO']} a {mayor['MAE']:.3f} en {mayor['MUNICIPIO']}. Son errores en cantidades de casos y los municipios tienen volúmenes distintos; esa diferencia no demuestra por sí sola que el modelo funcione proporcionalmente mejor en uno. Se conserva el mismo enfoque elegido en 18.2 para los cinco municipios. Su sesgo y sus errores por año se detallan en esa sección.
-
-**Hasta dónde podemos concluir.** Estas diferencias describen una ejecución con una semilla y el mismo bloque de validación 2022–2023. Probar más configuraciones puede producir un mínimo optimista; además, las ventanas se solapan. Todavía hacen falta otros cortes cronológicos o semillas y referencias sencillas de persistencia o estacionales para revisar estabilidad. No se ha demostrado superioridad estadística, causalidad ni utilidad de una intervención sanitaria.
-
-**El cierre queda pendiente.** Se mantuvieron los escaladores ajustados en entrenamiento y las predicciones continuas, incluidos los valores negativos que las tablas contabilizan. No se volvió a leer el test durante esta exploración. Como el bloque 2024–2025 ya se había observado antes, usarlo posteriormente tampoco constituirá una prueba ciega. La evaluación y su análisis final permanecen desactivados en el último punto del notebook mientras decidimos con qué configuración continuar.
-"""
-    return texto,cambios
 
 
 def evaluar_al_cierre(ruta,datos_desarrollo,prep,catalogo,ranking,seleccion):
@@ -453,7 +435,7 @@ def evaluar_al_cierre(ruta,datos_desarrollo,prep,catalogo,ranking,seleccion):
     """
     ruta=Path(ruta)
     ids=[seleccion['ID_ELEGIDO']]
-    for familia in ['LSTM','GRU','LSTM local','Regresión lineal','Random Forest','XGBoost']:
+    for familia in ['LSTM','LSTM local','Regresión lineal','Random Forest','XGBoost']:
         g=ranking.loc[ranking['FAMILIA'].eq(familia)]
         ids.append(g.loc[g['MAE'].idxmin(),'ID'])
     ids=list(dict.fromkeys(ids))
@@ -504,11 +486,7 @@ def evaluar_al_cierre(ruta,datos_desarrollo,prep,catalogo,ranking,seleccion):
     pred=pd.concat(tablas,ignore_index=True)
     metricas=calcular_metricas(pred,['ID','MODELO','HISTORIA']);municipal=calcular_metricas(pred,['ID','MODELO','HISTORIA','COD_DANE','MUNICIPIO'])
     pred.to_csv(salida/'predicciones.csv',index=False,encoding='utf-8-sig');metricas.to_csv(salida/'metricas.csv',index=False,encoding='utf-8-sig');municipal.to_csv(salida/'metricas_municipales.csv',index=False,encoding='utf-8-sig')
-    elegido=metricas.loc[metricas['ID'].eq(seleccion['ID_ELEGIDO'])].iloc[0]
-    mejor=metricas.loc[metricas['MAE'].idxmin()]
-    texto=f"El candidato elegido por validación, {elegido['MODELO']}, obtiene MAE {elegido['MAE']:.3f} y RMSE {elegido['RMSE']:.3f} en el bloque de evaluación. Entre los candidatos congelados, el menor MAE observado es de {mejor['MODELO']} ({mejor['MAE']:.3f}). Estos resultados describen un test que ya se había observado; no constituyen una nueva confirmación independiente ni justifican cambiar retrospectivamente la selección. No se reentrenó ni ajustó ningún modelo con este bloque."
-    (salida/'ANALISIS_FINAL.md').write_text('# Análisis al cierre: evaluación históricamente conocida\n\n'+texto,encoding='utf-8')
-    return pred,metricas,municipal,texto,salida
+    return pred,metricas,municipal,None,salida
 
 
 def graficar_al_cierre(pred_desarrollo,pred_evaluacion,salida):

@@ -1,16 +1,68 @@
-# Proyecto final: pronóstico semanal de dengue
+# Pronóstico semanal de dengue
 
-El notebook principal es **ProyectoFinal.ipynb**. El objetivo es pronosticar los casos registrados de la semana **t+4**, para Cali, Guadalajara de Buga, Palmira, Tuluá y Yumbo, con historias de **12, 16 y 20 semanas**.
+El proyecto compara modelos para pronosticar los casos de una semana específica, **t+4**, en Cali, Guadalajara de Buga, Palmira, Tuluá y Yumbo. Las historias son de **8, 12, 16, 20 y 24 semanas**. El modelo seleccionado es el que obtiene el **menor MAE de validación sin redondear**; no se mantiene una preferencia previa por arquitectura o Dropout.
 
-## Abrir el proyecto
+## Datos y separación temporal
 
-Ejecuta `Iniciar-Notebook.cmd` y conserva abierta su terminal. En Jupyter o VS Code selecciona el kernel **Python (ProyectoFinal)**, correspondiente a `.venv/Scripts/python.exe`.
+- Entrenamiento: 2007–2021.
+- Validación: 2022–2023, utilizada para comparar configuraciones y escoger el modelo.
+- Test: 2024–2025, evaluado al cerrar la selección. Este periodo ya se había observado en etapas anteriores; la evaluación actual no se presenta como una prueba ciega.
 
-```powershell
-.\Iniciar-Notebook.cmd
-```
+Cada ventana avanza una semana y utiliza casos y clima observados hasta t. Todas las historias comparten **3.780 objetivos de entrenamiento y 505 de validación**. Cada red local usa 756 y 101, respectivamente. El soporte común parte de la historia más larga, de 24 semanas. Las ventanas se solapan, por lo que no son observaciones independientes.
 
-Las dependencias están en `requirements.txt` y las versiones instaladas en `requirements-lock.txt`. Para recrear el entorno utiliza una versión de Python compatible con ese archivo (el proyecto usa Python 3.13), crea `.venv`, instala las dependencias y registra el kernel:
+Las siete variables temporales son casos, temperaturas media/máxima/mínima, precipitación y seno/coseno de la semana epidemiológica. Los modelos globales agregan el one-hot municipal; los locales tienen un municipio fijo. Los escaladores se ajustan únicamente con entrenamiento. Las métricas se calculan en casos, deshaciendo la transformación de salida con el escalador de cada municipio, sin redondear ni recortar los pronósticos.
+
+## Modelos comparados
+
+| Grupo | Configuraciones | Ajustes predictivos |
+| --- | --- | ---: |
+| Baselines | Regresión lineal, Random Forest y XGBoost, con las cinco historias | 15 |
+| LSTM globales | Catorce estructuras, con las cinco historias | 70 |
+| LSTM locales | Tres estructuras × cinco historias × cinco municipios | 75 |
+| Total | 100 enfoques al reunir las cinco redes de cada enfoque local | **160** |
+
+Las estructuras globales incluyen la referencia LSTM32 + Dense16, la variante sin Dense intermedia, Dropout de 0,20 y 0,50, dos y tres capas, LSTM16 + Dense8, seis opciones LSTM64 (Dense16, Dense8 y sin Dense intermedia, con Dropout de 0 y 0,20) y dos capas de 32 con Dense16. Todas conservan una salida lineal de una neurona y reciben el one-hot municipal.
+
+Los locales comparan LSTM32 + Dense16, LSTM16 + Dense8 y LSTM8 + Dense4, con **5.665, 1.681 y 553 parámetros por red**, sin Dropout. Cada combinación de estructura e historia reúne cinco redes independientes.
+
+Usamos semilla 42. Las LSTM se ajustan con Adam, tasa inicial de 0,001, lotes de 32, hasta 200 épocas y orden sin barajar. EarlyStopping recupera los pesos con menor MSE de validación y detiene el ajuste tras veinte épocas sin mejora; la tasa se reduce tras cinco épocas sin mejora. La comparación posterior utiliza MAE y RMSE en casos, no la pérdida transformada de entrenamiento.
+
+Los baselines conservan sus configuraciones iniciales: regresión lineal predeterminada, Random Forest de 300 árboles con profundidad máxima 12 y mínimo tres ejemplos por hoja, y XGBoost de hasta 800 rondas, profundidad 3, tasa 0,03 y parada anticipada de 50 rondas con validación. No se hace una búsqueda exhaustiva de hiperparámetros.
+
+## Orden del notebook
+
+| Punto | Contenido |
+| --- | --- |
+| 1–12 | Lectura, limpieza, selección municipal, series semanales y transformaciones |
+| 13 | Secuencias de las cinco historias, sin entrenar modelos |
+| 14–15 | Entrenamiento y validación de los 15 baselines |
+| 16–17 | Definición y entrenamiento de las 145 redes LSTM |
+| 18 | Ranking de los 100 enfoques, detalle del seleccionado y comparación local |
+| 19 | Discusión de validación y limitaciones, escrita en Markdown |
+| 20 | Test, comparación de los tres periodos, exportación y análisis final |
+
+Una ejecución completa entrena todos los modelos desde cero. Las llamadas a entrenamiento están en los puntos 14 y 17. Los modelos y las métricas de corridas anteriores no son requisitos para iniciar una nueva. Las conclusiones están en celdas Markdown y deben revisarse cuando cambien los resultados.
+
+Para retomar desde los conjuntos limpios, ejecuta **1, 2 y 9.2** y continúa desde el **10**. El punto 9.1 guarda los archivos después de limpiar; 9.2 los carga sin repetir ese trabajo. HISTORIA_PARA_CURVAS permite revisar cualquiera de las cinco historias después de entrenar.
+
+## Archivos del proyecto
+
+- `DataRaw/`: CSV anuales reducidos al departamento 76 y a las cinco columnas utilizadas: COD_DPTO_O, COD_MUN_O, SEMANA, ANO e INI_SIN.
+- `DataRawOriginal/`: copia de los archivos completos, conservada localmente y excluida de Git.
+- `ShapeMunicipios/CLIMA_DENGUE_VALLE/`: clima semanal por municipio.
+- `DatosProcesados/`: series semanales separadas en entrenamiento, validación y test.
+- `modelado_notebook.py`: construcción de ventanas, arquitecturas, métricas, gráficas y exportación.
+- `analisis_validacion.py`: diagnóstico del modelo seleccionado a partir de sus predicciones de validación.
+- `ModeloSeleccionado/`: paquete del modelo elegido que se incluye en Git, con pesos, escaladores, configuración y ejemplo de carga. El punto 20.4 actualiza esta carpeta.
+- `ResultadosModelos/entrenamiento_en_notebook/ejecucion_*/`: modelos, configuración, escaladores, historiales, predicciones, tablas, figuras y verificaciones de cada corrida.
+
+Dentro de cada corrida, `analisis_locales/` conserva la comparación municipal y por tamaño. `evaluacion_al_cierre/` contiene el test y su carpeta `modelo_elegido/`, con los pesos, el preprocesamiento, la configuración, un ejemplo comprobado y un script de carga. Si el elegido es local, la exportación incluye sus cinco redes. Las corridas completas se mantienen fuera de Git. El paquete elegido se copia a `ModeloSeleccionado/`, cuyos archivos están permitidos en el `.gitignore`. Para comprobar su carga desde la raíz del proyecto, ejecuta `.venv\Scripts\python.exe ModeloSeleccionado\predecir_ejemplo.py`.
+
+Los CSV reducidos conservan los registros del Valle del Cauca; la limpieza de INI_SIN y de municipios sigue en el notebook. `datos_dengue.py` centraliza su lectura. `preparar_datos_dengue.py` permite repetir la reducción y verifica la copia original y el manifiesto antes de sustituir archivos de trabajo.
+
+## Entorno
+
+El proyecto utiliza Python 3.13 y el entorno `.venv`. Las dependencias están en `requirements.txt` y las versiones instaladas en `requirements-lock.txt`.
 
 ```powershell
 python -m venv .venv
@@ -18,83 +70,21 @@ python -m venv .venv
 .venv\Scripts\python.exe -m ipykernel install --prefix .venv --name proyecto-final --display-name "Python (ProyectoFinal)"
 ```
 
-## Orden actual del notebook
+Los respaldos del notebook y los resultados de etapas anteriores se conservan en `ResultadosModelos/`; no participan en la selección de la nueva corrida.
 
-| Punto | Contenido | Datos de modelado |
-| --- | --- | --- |
-| 1–12 | Carga, municipios, series semanales y transformaciones. La preparación original conserva las tres particiones en archivos separados. | Escaladores ajustados solo con entrenamiento. |
-| 13 | Construcción de secuencias con los datos del punto 12. Sin modelos ni métricas. | Train y validation. |
-| 14 | Entrenamiento de regresión lineal, Random Forest y XGBoost para las tres historias: nueve ajustes nuevos. | Train; parada de XGBoost con validation. |
-| 15 | Métricas y gráficas de los baselines que se acaban de entrenar. | Comparación en validación. |
-| 16 | Definición de las estructuras LSTM y GRU. | Sin entrenamiento todavía. |
-| 17 | Entrenamiento de 41 redes globales y 15 locales. | Ajuste con train, checkpoints con validation. |
-| 18 | Comparación completa y detalle municipal. | Validación. |
-| 19 | Selección provisional, discusión y limitaciones. | Validación. |
-| **20** | **Evaluación final, gráficas de los tres periodos y exportación del modelo elegido.** | Test 2024–2025, después de fijar la selección. |
 
-**El notebook entrena los modelos desde cero al ejecutar sus celdas.** Las llamadas a `fit` están en los puntos 14 y 17. Las predicciones y métricas se calculan después de esos ajustes. Las exportaciones son salidas de esta corrida; no se necesitan modelos ni resultados anteriores para iniciarla.
+## Resultados de la nueva corrida
 
-La preparación inicial carga y transforma las tres particiones por separado. La exploración predictiva utiliza solamente entrenamiento y validación. El test 2024–2025 ya se observó históricamente; mover su bloque al final no lo vuelve a convertir en una prueba ciega.
+El menor MAE de validación fue el de **LSTM 64 · Dense16 · D0,0 · 20s**, que queda seleccionado. Todas las configuraciones se entrenaron desde cero con historias de 8, 12, 16, 20 y 24 semanas.
 
-## Datos y soporte común
+| Conjunto | Objetivos | MAE | RMSE |
+| --- | ---: | ---: | ---: |
+| Entrenamiento | 3.780 | 7.743 | 21.898 |
+| Validación | 505 | 11.377 | 26.837 |
+| Test | 510 | 38.139 | 95.413 |
 
-- `DataRaw/`: CSV anuales reducidos al Valle del Cauca (76), con las cinco columnas de vigilancia utilizadas. El notebook mantiene la limpieza de INI_SIN y la selección municipal.
-- `DataRawOriginal/`: copia íntegra de los 19 Excel originales. Se conserva localmente y está excluida de Git.
-- `ShapeMunicipios/CLIMA_DENGUE_VALLE/`: precipitación semanal y temperaturas media, máxima y mínima.
-- `DatosProcesados/semanal_training.csv` y `semanal_validation.csv`: semanas originales de entrenamiento 2007–2021 y validación 2022–2023.
-- Los modelos utilizan 3.800 ventanas de entrenamiento (760 por municipio) y 505 de validación (101 por municipio), idénticas entre historias.
-- Cada ventana avanza una semana. Para pronosticar t+4 utiliza únicamente información hasta t; el objetivo es una semana específica, no la suma de casos del mes. La validación empieza con emisiones desde el cierre del entrenamiento.
-- Las entradas incluyen casos, tres temperaturas, precipitación y seno/coseno de la semana. Las redes globales y baselines agregan el one-hot municipal; las locales mantienen su municipio fijo.
-- Se conserva log1p/estandarización municipal para casos y los escaladores de clima de entrenamiento. No se introduce clima futuro ni se reajustan escaladores con validación.
+La corrida está en `ResultadosModelos/entrenamiento_en_notebook/ejecucion_5a3d407a`. La evaluación y el modelo exportado están en `ResultadosModelos/entrenamiento_en_notebook/ejecucion_5a3d407a/evaluacion_al_cierre/ejecucion_ecefe053`. VERIFICACION_ENTRENAMIENTO.json registra las comprobaciones de datos, métricas y selección.
 
-## Archivos de casos reducidos
+La referencia local con menor MAE de validación fue **LSTM local 16 · Dense8 (5 redes) · 24s**: MAE 12.872 y RMSE 30.108. El análisis municipal, las curvas y la comparación de tamaños están en el punto 18.3 del notebook.
 
-Los archivos de trabajo se llaman `DataRaw/Datos_AAAA_210.csv`. Conservan `COD_DPTO_O`, `COD_MUN_O`, `SEMANA`, `ANO` e `INI_SIN`, con todos los municipios del departamento 76. La reducción no elimina fechas faltantes, municipios sin correspondencia ni registros repetidos; esas comprobaciones siguen en el notebook.
-
-`datos_dengue.py` centraliza la lectura, conserva los códigos como texto y prefiere los CSV reducidos. También admite los Excel con la hoja `Datos`. El notebook trabaja con `DataRaw`; no abre automáticamente la copia completa de `DataRawOriginal`.
-
-La conversión puede reproducirse con:
-
-```powershell
-.venv\Scripts\python.exe preparar_datos_dengue.py
-```
-
-La primera ejecución copia y verifica los originales antes de sustituir los archivos de trabajo. Las siguientes comprueban el manifiesto y los hashes sin volver a convertirlos. `DataRaw/manifiesto_reduccion.json` y `DataRaw/resumen_reduccion.csv` registran tamaños, filas y verificaciones por año. Git permite incluir esos CSV reducidos y sus registros; los Excel completos de `DataRawOriginal` y cualquier otro archivo de `DataRaw` quedan excluidos.
-
-La gráfica inicial muestra ahora únicamente Valle del Cauca, porque los CSV reducidos ya no contienen otros departamentos. Los conjuntos municipales y las series utilizadas por los modelos deben conservar los mismos valores.
-
-## Exploración ampliada
-
-La matriz prueba LSTM y GRU con una capa de 32 unidades y Dense16 como referencia; sin Dense intermedia; Dropout de 0,20 y 0,50; dos capas 32→16 con Dropout de 0,20; y tres capas 32→16→8 con Dropout de 0,20. Cada estructura se prueba con 12, 16 y 20 semanas.
-
-También se entrenan las referencias LSTM de 64 unidades y de dos capas de 32, ambas con historia de 16 semanas, y una LSTM local por municipio e historia. Añadimos además LSTM16 + Dense8 sin Dropout para las historias de 12, 16 y 20 semanas. Son **56 ajustes de redes**: 41 globales y 15 locales. Las cinco redes locales de cada historia forman un enfoque para la comparación. Junto con los nueve baselines, quedan **53 enfoques** en la tabla de validación. Se mantiene una semilla y configuración por receta, sin búsqueda exhaustiva.
-
-Las redes utilizan semilla 42, Adam con tasa inicial de 0,001, lotes de 32, hasta 100 épocas y `shuffle=False`. EarlyStopping conserva los pesos con menor MSE de validación y detiene el ajuste tras 10 épocas sin mejora. ReduceLROnPlateau reduce la tasa tras 5 épocas sin mejora. Una menor pérdida transformada no garantiza un menor MAE en casos.
-
-El punto 14 crea una carpeta nueva en `ResultadosModelos/entrenamiento_en_notebook/ejecucion_*`. Allí se guardan configuración, escaladores y codificador actuales, modelos entrenados, historiales, predicciones de train/validation, métricas generales y municipales y figuras, incluida la comparación de LSTM16 + Dense8 con LSTM32 + Dense16 por historia. El ranking general se ordena por MAE de validación sin redondear y conserva el mínimo de RMSE como referencia. La discusión y las conclusiones están escritas directamente en celdas Markdown a partir de los resultados guardados; deben revisarse al cambiar la corrida o la selección.
-
-`modelado_notebook.py` contiene las utilidades para construir ventanas, definir redes, invertir transformaciones, calcular métricas, dibujar y exportar. El notebook contiene y ejecuta los ajustes predictivos. `exploracion_temporal.py` se conserva como historial y no se importa en el flujo actual.
-
-Desde el punto 18.2 se elige explícitamente **LSTM32 + Dense16 + Dropout de 0,20, con historia de 20 semanas**. La arquitectura se escoge por la preferencia de trabajar con regularización; entre sus tres historias, 20 semanas obtuvo los menores MAE y RMSE de validación. El mínimo general de MAE sigue identificado como referencia. Se conserva la selección previa en `seleccion_hasta_18_1.json` y la decisión actual, con su motivo, en `seleccion_validacion.json`. Esta preferencia no se presenta como una demostración de mejor generalización.
-
-El punto 18.2 utiliza `analisis_validacion.py` para ampliar la lectura de las predicciones ya calculadas: compara el modelo elegido con el mínimo de MAE, la versión sin Dropout de la misma historia, las familias, los municipios y el mejor baseline general. También analiza los años de validación y los mayores errores y conserva el detalle municipal de las seis mejores configuraciones. Las tablas, las figuras municipales y las series del candidato se guardan en `analisis_validacion/` dentro de la carpeta de la corrida. Este análisis no entrena modelos ni consulta evaluación. Con las variables de la sesión disponibles, se pueden actualizar los puntos 18.2 y 19 después de ejecutar el punto 2, que recarga las utilidades.
-
-## Revisar o repetir
-
-Para retomar desde los conjuntos de casos ya limpios, ejecuta los puntos **1, 2 y 9.2**, y continúa desde el **10**. El punto **9.1** guarda los archivos después de la limpieza; no hace falta ejecutarlo cuando solo quieres cargar `training.csv`, `validation.csv` y `test.csv`. La carga comprueba los periodos y conserva los códigos municipales como texto, sin sobrescribir los archivos. El punto 11 reutiliza esos conjuntos para obtener los conteos semanales.
-
-Esta ruta evita repetir la limpieza; los modelos se entrenan cuando llegas a los puntos 14 y 17. No hay una opción activada por defecto que recupere resultados históricos en lugar de entrenar. Después de entrenar, cambia `HISTORIA_PARA_CURVAS` a 12, 16 o 20 para revisar otra historia sin repetir el ajuste.
-
-Para repetir la comparación, reinicia el kernel y ejecuta el notebook en orden, desde el inicio o retomando los conjuntos limpios como se indica arriba. Cada corrida crea su propia carpeta y conserva las anteriores. Las estructuras están definidas en `modelado_notebook.py`; si se cambia la matriz también deben revisarse las comprobaciones que describen su tamaño.
-
-El punto 20 está habilitado para la evaluación solicitada. No lo ejecutes durante la exploración de arquitecturas: primero fija la selección con validación. Este bloque utiliza el candidato registrado en 18.2 y las referencias de menor MAE por familia de la misma ejecución. Guarda las métricas generales, municipales y anuales, las gráficas de entrenamiento, validación y evaluación y el modelo elegido. No se ajustan modelos ni escaladores con evaluación.
-
-La evaluación realizada está en `ResultadosModelos/entrenamiento_en_notebook/ejecucion_93868d0d/evaluacion_al_cierre/ejecucion_3cb61062/`. La LSTM elegida obtuvo MAE 41.166 y RMSE 106.534 en 510 objetivos de test; la regresión lineal de 12 semanas obtuvo los menores errores entre las siete referencias evaluadas (31.405 y 79.162). La selección previa se conserva. El análisis del punto 20 está en Markdown y reconoce que este test ya se había consultado históricamente.
-
-Dentro de esa carpeta, `modelo_elegido/modelo.keras` contiene la arquitectura y los pesos de LSTM32 + Dense16 + Dropout 0,20 e historia de 20 semanas. Lo acompañan `preprocesamiento.joblib`, `configuracion.json`, las dependencias, un ejemplo de validación y sus predicciones, instrucciones de carga y hashes SHA-256. Se comprobó que el archivo exportado reproduce las predicciones originales para un ejemplo de cada municipio.
-
-## Historial conservado
-
-Los respaldos del notebook y las comparaciones históricas se conservan en `ResultadosModelos/respaldos_notebook/`, `ResultadosModelos/evaluacion_final_t4/` y `ResultadosModelos/gru_xgboost_t4/`, junto con las otras exportaciones anteriores.
-
-Esos resultados quedan fuera de la exploración y de la selección actuales. Las exportaciones anteriores se conservaron.
+Entre las cinco referencias evaluadas, el menor MAE de test fue el de **Regresión lineal · 12s**, con MAE 31.285 y RMSE 78.708. La selección se mantiene fijada con validación; el periodo de test ya era conocido y no se utiliza para volver a escoger.

@@ -272,3 +272,11 @@ Desktop.ini
 /ShapeMunicipios/CLIMA_DENGUE_VALLE-20261012T225252Z-1-001.zip
 /ShapeMunicipios/SHP_MGN2018_INTGRD_MPIO.zip
 /ShapeMunicipios/SHP_MGN2018_INTGRD_MPIO/
+
+# Paquete del modelo seleccionado que sí se incluye en el repositorio.
+!/ModeloSeleccionado/modelo.keras
+!/ModeloSeleccionado/modelo.joblib
+!/ModeloSeleccionado/modelo.ubj
+!/ModeloSeleccionado/preprocesamiento.joblib
+!/ModeloSeleccionado/entradas_ejemplo_validacion.npz
+!/ModeloSeleccionado/modelos/*.keras

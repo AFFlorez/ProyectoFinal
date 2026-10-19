@@ -81,7 +81,7 @@ def preparar_analisis_validacion(predicciones, metricas, municipales, ranking, s
     texto_familias = (
         f"Desde este punto analizamos **{candidato['MODELO']}**, con **MAE {candidato['MAE']:.3f}** "
         f"y **RMSE {candidato['RMSE']:.3f} casos** en {int(candidato['N'])} pronósticos de t+4. "
-        f"**Motivo de la elección:** {motivo}\n\n"
+        f"Se eligió por el menor MAE de validación entre {len(ranking)} enfoques.\n\n"
         f"El mínimo de MAE sigue siendo **{minimo_mae['MODELO']}**, con MAE {minimo_mae['MAE']:.3f} "
         f"y RMSE {minimo_mae['RMSE']:.3f}. Frente a esa referencia, el MAE del modelo elegido es "
         f"{_diferencia_relativa(candidato['MAE'], minimo_mae['MAE'])} y su RMSE es "
@@ -96,8 +96,8 @@ def preparar_analisis_validacion(predicciones, metricas, municipales, ranking, s
         f"({mejor_rmse['RMSE']:.3f}). La tabla por familias conserva sus referencias de menor MAE "
         "y añade el modelo elegido, identificado en la columna ROL. Las columnas de entrenamiento describen el ajuste sobre datos ya vistos; "
         "su diferencia con validación también puede reflejar cambios entre periodos y no demuestra por sí sola sobreajuste."
-        "\n\nDropout es una forma de regularización y aquí motiva la elección de la arquitectura. "
-        "Estos resultados no prueban que generalice mejor: para estudiar esa hipótesis harían falta "
+        "\n\nNo se mantuvo una preferencia previa por una arquitectura o por usar Dropout. "
+        "Estos resultados no prueban estabilidad fuera de este periodo: para estudiarla harían falta "
         "otros cortes temporales o semillas, sin utilizar evaluación para ajustar la decisión."
     )
 

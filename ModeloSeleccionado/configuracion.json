@@ -1,0 +1,120 @@
+{
+  "ID": "lstm_adicional_B64_v20",
+  "nombre": "LSTM 64 · Dense16 · D0,0 · 20s",
+  "tipo": "red",
+  "archivos": "modelo.keras",
+  "arquitectura": {
+    "unidades": [
+      64
+    ],
+    "dense": 16,
+    "dropout": 0.0
+  },
+  "parametros": 19569,
+  "historia_semanas": 20,
+  "horizonte_semanas": 4,
+  "objetivo": "Casos de la semana t+4; no acumulado mensual",
+  "columnas_temporales": [
+    "CASOS_std",
+    "TEMP_MEDIA_C_std",
+    "TEMP_MAX_C_std",
+    "TEMP_MIN_C_std",
+    "PRECIPITACION_MM_std",
+    "semana_sin",
+    "semana_cos"
+  ],
+  "orden_one_hot": [
+    "76001",
+    "76111",
+    "76520",
+    "76834",
+    "76892"
+  ],
+  "salida": "log1p(casos) estandarizado por municipio",
+  "seleccion": {
+    "MAE": {
+      "ID": "lstm_adicional_B64_v20",
+      "MODELO": "LSTM 64 · Dense16 · D0,0 · 20s",
+      "FAMILIA": "LSTM",
+      "RECETA": "B64",
+      "HISTORIA": 20,
+      "CONJUNTO": "validation",
+      "N": 505,
+      "MAE": 11.377108856902195,
+      "RMSE": 26.83727278985238,
+      "SESGO_MEDIO": -5.602005131972647,
+      "FRACCION_SUBESTIMACION": 0.5366336633663367,
+      "PRONOSTICOS_NEGATIVOS": 0,
+      "MAE_PROMEDIO_MUNICIPAL": 11.377108856902193,
+      "RMSE_PROMEDIO_MUNICIPAL": 21.262854726332097,
+      "PARAMETROS_RED": 19569.0
+    },
+    "RMSE": {
+      "ID": "lstm_64_dense8_drop20_v16",
+      "MODELO": "LSTM 64 · Dense8 · D0,2 · 16s",
+      "FAMILIA": "LSTM",
+      "RECETA": "64_dense8_drop20",
+      "HISTORIA": 16,
+      "CONJUNTO": "validation",
+      "N": 505,
+      "MAE": 11.459090461093098,
+      "RMSE": 26.754650279903757,
+      "SESGO_MEDIO": -6.620637205780899,
+      "FRACCION_SUBESTIMACION": 0.5801980198019802,
+      "PRONOSTICOS_NEGATIVOS": 0,
+      "MAE_PROMEDIO_MUNICIPAL": 11.459090461093098,
+      "RMSE_PROMEDIO_MUNICIPAL": 21.3195766686898,
+      "PARAMETROS_RED": 19001.0
+    },
+    "ID_ELEGIDO": "lstm_adicional_B64_v20",
+    "criterio_principal": "MAE agrupado de validación, sin redondear",
+    "candidato_provisional": true,
+    "entrenado_en_esta_ejecucion": true,
+    "ejecucion": "ejecucion_5a3d407a",
+    "test_consultado_en_esta_exploracion": false,
+    "test_historicamente_conocido": true,
+    "seleccion_manual": false,
+    "motivo_eleccion": "Menor MAE de validación, sin redondear",
+    "ID_MINIMO_MAE": "lstm_adicional_B64_v20",
+    "ID_MINIMO_RMSE": "lstm_64_dense8_drop20_v16",
+    "MODELO_ELEGIDO": {
+      "ID": "lstm_adicional_B64_v20",
+      "MODELO": "LSTM 64 · Dense16 · D0,0 · 20s",
+      "FAMILIA": "LSTM",
+      "RECETA": "B64",
+      "HISTORIA": 20,
+      "CONJUNTO": "validation",
+      "N": 505,
+      "MAE": 11.377108856902195,
+      "RMSE": 26.83727278985238,
+      "SESGO_MEDIO": -5.602005131972647,
+      "FRACCION_SUBESTIMACION": 0.5366336633663367,
+      "PRONOSTICOS_NEGATIVOS": 0,
+      "MAE_PROMEDIO_MUNICIPAL": 11.377108856902193,
+      "RMSE_PROMEDIO_MUNICIPAL": 21.262854726332097,
+      "PARAMETROS_RED": 19569.0
+    }
+  },
+  "reentrenado_con_test": false,
+  "metricas_test": {
+    "ID": "lstm_adicional_B64_v20",
+    "MODELO": "LSTM 64 · Dense16 · D0,0 · 20s",
+    "HISTORIA": 20,
+    "N": 510,
+    "MAE": 38.13924778166019,
+    "RMSE": 95.41277484358977,
+    "SESGO_MEDIO": -10.451067316912654,
+    "FRACCION_SUBESTIMACION": 0.4745098039215686,
+    "PRONOSTICOS_NEGATIVOS": 0,
+    "ROL": "Modelo elegido"
+  },
+  "versiones": {
+    "tensorflow": "2.21.0",
+    "keras": "3.15.1",
+    "scikit-learn": "1.9.1",
+    "xgboost": "3.4.1",
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "joblib": "1.6.0"
+  }
+}
