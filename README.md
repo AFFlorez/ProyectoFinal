@@ -30,7 +30,7 @@ python -m venv .venv
 | 17 | Entrenamiento de 41 redes globales y 15 locales. | Ajuste con train, checkpoints con validation. |
 | 18 | Comparación completa y detalle municipal. | Validación. |
 | 19 | Selección provisional, discusión y limitaciones. | Validación. |
-| **20** | **Evaluación y análisis final al cerrar la selección. Desactivado por defecto.** | Solo se abre evaluación al activarlo explícitamente. |
+| **20** | **Evaluación final, gráficas de los tres periodos y exportación del modelo elegido.** | Test 2024–2025, después de fijar la selección. |
 
 **El notebook entrena los modelos desde cero al ejecutar sus celdas.** Las llamadas a `fit` están en los puntos 14 y 17. Las predicciones y métricas se calculan después de esos ajustes. Las exportaciones son salidas de esta corrida; no se necesitan modelos ni resultados anteriores para iniciarla.
 
@@ -71,9 +71,13 @@ También se entrenan las referencias LSTM de 64 unidades y de dos capas de 32, a
 
 Las redes utilizan semilla 42, Adam con tasa inicial de 0,001, lotes de 32, hasta 100 épocas y `shuffle=False`. EarlyStopping conserva los pesos con menor MSE de validación y detiene el ajuste tras 10 épocas sin mejora. ReduceLROnPlateau reduce la tasa tras 5 épocas sin mejora. Una menor pérdida transformada no garantiza un menor MAE en casos.
 
-El punto 14 crea una carpeta nueva en `ResultadosModelos/entrenamiento_en_notebook/ejecucion_*`. Allí se guardan configuración, escaladores y codificador actuales, modelos entrenados, historiales, predicciones de train/validation, métricas generales y municipales, figuras y discusión, incluida la comparación de LSTM16 + Dense8 con LSTM32 + Dense16 por historia. El criterio principal es MAE de validación sin redondear; RMSE se informa por separado. Las conclusiones se generan con las métricas de la sesión, sin un ganador ni errores fijados de antemano.
+El punto 14 crea una carpeta nueva en `ResultadosModelos/entrenamiento_en_notebook/ejecucion_*`. Allí se guardan configuración, escaladores y codificador actuales, modelos entrenados, historiales, predicciones de train/validation, métricas generales y municipales y figuras, incluida la comparación de LSTM16 + Dense8 con LSTM32 + Dense16 por historia. El ranking general se ordena por MAE de validación sin redondear y conserva el mínimo de RMSE como referencia. La discusión y las conclusiones están escritas directamente en celdas Markdown a partir de los resultados guardados; deben revisarse al cambiar la corrida o la selección.
 
 `modelado_notebook.py` contiene las utilidades para construir ventanas, definir redes, invertir transformaciones, calcular métricas, dibujar y exportar. El notebook contiene y ejecuta los ajustes predictivos. `exploracion_temporal.py` se conserva como historial y no se importa en el flujo actual.
+
+Desde el punto 18.2 se elige explícitamente **LSTM32 + Dense16 + Dropout de 0,20, con historia de 20 semanas**. La arquitectura se escoge por la preferencia de trabajar con regularización; entre sus tres historias, 20 semanas obtuvo los menores MAE y RMSE de validación. El mínimo general de MAE sigue identificado como referencia. Se conserva la selección previa en `seleccion_hasta_18_1.json` y la decisión actual, con su motivo, en `seleccion_validacion.json`. Esta preferencia no se presenta como una demostración de mejor generalización.
+
+El punto 18.2 utiliza `analisis_validacion.py` para ampliar la lectura de las predicciones ya calculadas: compara el modelo elegido con el mínimo de MAE, la versión sin Dropout de la misma historia, las familias, los municipios y el mejor baseline general. También analiza los años de validación y los mayores errores y conserva el detalle municipal de las seis mejores configuraciones. Las tablas, las figuras municipales y las series del candidato se guardan en `analisis_validacion/` dentro de la carpeta de la corrida. Este análisis no entrena modelos ni consulta evaluación. Con las variables de la sesión disponibles, se pueden actualizar los puntos 18.2 y 19 después de ejecutar el punto 2, que recarga las utilidades.
 
 ## Revisar o repetir
 
@@ -83,7 +87,11 @@ Esta ruta evita repetir la limpieza; los modelos se entrenan cuando llegas a los
 
 Para repetir la comparación, reinicia el kernel y ejecuta el notebook en orden, desde el inicio o retomando los conjuntos limpios como se indica arriba. Cada corrida crea su propia carpeta y conserva las anteriores. Las estructuras están definidas en `modelado_notebook.py`; si se cambia la matriz también deben revisarse las comprobaciones que describen su tamaño.
 
-Mantén `EJECUTAR_EVALUACION_FINAL = False` mientras siga abierta la exploración. La selección y discusión de desarrollo son provisionales. Solo el último bloque utiliza los modelos de la ejecución actual para comparar el candidato y las referencias elegidos por validación con el conjunto de evaluación. Allí quedan también las gráficas de entrenamiento, validación y evaluación y el análisis final. No se ajustan modelos ni escaladores con evaluación.
+El punto 20 está habilitado para la evaluación solicitada. No lo ejecutes durante la exploración de arquitecturas: primero fija la selección con validación. Este bloque utiliza el candidato registrado en 18.2 y las referencias de menor MAE por familia de la misma ejecución. Guarda las métricas generales, municipales y anuales, las gráficas de entrenamiento, validación y evaluación y el modelo elegido. No se ajustan modelos ni escaladores con evaluación.
+
+La evaluación realizada está en `ResultadosModelos/entrenamiento_en_notebook/ejecucion_93868d0d/evaluacion_al_cierre/ejecucion_3cb61062/`. La LSTM elegida obtuvo MAE 41.166 y RMSE 106.534 en 510 objetivos de test; la regresión lineal de 12 semanas obtuvo los menores errores entre las siete referencias evaluadas (31.405 y 79.162). La selección previa se conserva. El análisis del punto 20 está en Markdown y reconoce que este test ya se había consultado históricamente.
+
+Dentro de esa carpeta, `modelo_elegido/modelo.keras` contiene la arquitectura y los pesos de LSTM32 + Dense16 + Dropout 0,20 e historia de 20 semanas. Lo acompañan `preprocesamiento.joblib`, `configuracion.json`, las dependencias, un ejemplo de validación y sus predicciones, instrucciones de carga y hashes SHA-256. Se comprobó que el archivo exportado reproduce las predicciones originales para un ejemplo de cada municipio.
 
 ## Historial conservado
 

@@ -396,8 +396,12 @@ def graficar_desarrollo(pred,general,municipal,ranking,catalogo,ruta,mostrar=Tru
     return rutas
 
 
-def conclusiones_desarrollo(ranking,municipal,catalogo):
+def conclusiones_desarrollo(ranking,municipal,catalogo,seleccion=None):
     mae=ranking.loc[ranking['MAE'].idxmin()];rmse=ranking.loc[ranking['RMSE'].idxmin()]
+    elegido=mae if seleccion is None else ranking.loc[ranking['ID'].eq(seleccion['ID_ELEGIDO'])].iloc[0]
+    motivo='Menor MAE general de validación.' if seleccion is None else seleccion.get('motivo_eleccion','Menor MAE general de validación.')
+    diferencia_mae=elegido['MAE']-mae['MAE']
+    diferencia_rmse=elegido['RMSE']-mae['RMSE']
     referencias=[]
     for f in ['LSTM','GRU']:
         g=ranking.loc[ranking['FAMILIA'].eq(f)];r=g.loc[g['MAE'].idxmin()]
@@ -421,17 +425,19 @@ def conclusiones_desarrollo(ranking,municipal,catalogo):
     detalle_compactas='; '.join(
         f"{int(r.HISTORIA)} semanas: MAE {r.MAE_VARIANTE:.3f} frente a {r.MAE_REFERENCIA:.3f} de la referencia"
         for r in compactas.sort_values('HISTORIA').itertuples())
-    mus=municipal.loc[municipal['CONJUNTO'].eq('validation')&municipal['ID'].eq(mae['ID'])]
+    mus=municipal.loc[municipal['CONJUNTO'].eq('validation')&municipal['ID'].eq(elegido['ID'])]
     menor=mus.loc[mus['MAE'].idxmin()];mayor=mus.loc[mus['MAE'].idxmax()]
-    texto=f"""**Con qué modelo seguiríamos por ahora.** El menor MAE de las {len(ranking)} configuraciones corresponde a **{mae['MODELO']}**: **{mae['MAE']:.3f} casos**, con RMSE de {mae['RMSE']:.3f}. Elegimos provisionalmente ese modelo porque fijamos MAE como criterio principal. Si miramos solo RMSE, el mínimo es de **{rmse['MODELO']}** ({rmse['RMSE']:.3f}). Ambos errores están expresados en casos de la semana t+4.
+    texto=f"""**Con qué modelo seguiríamos por ahora.** El modelo elegido para continuar es **{elegido['MODELO']}**, con **MAE {elegido['MAE']:.3f} casos** y **RMSE {elegido['RMSE']:.3f}** en validación. {motivo} La elección se registra desde el punto 18.2 y se mantiene para los cinco municipios.
 
-**LSTM, GRU y la cantidad de historia.** {'; '.join(referencias)}. Todas las historias tuvieron los mismos {int(catalogo[0]['N_ENTRENAMIENTO']):,} ejemplos de entrenamiento y {int(mae['N'])} objetivos de validación. Por tanto, la comparación cambia la información disponible dentro de cada ventana, sin añadir más fechas de entrenamiento a una opción.
+**Qué diferencia tiene frente a los mínimos observados.** El menor MAE de las {len(ranking)} configuraciones sigue correspondiendo a **{mae['MODELO']}**: MAE {mae['MAE']:.3f} y RMSE {mae['RMSE']:.3f}. La diferencia del elegido respecto a él es de {diferencia_mae:+.3f} casos en MAE y {diferencia_rmse:+.3f} en RMSE. El mínimo general de RMSE es de **{rmse['MODELO']}** ({rmse['RMSE']:.3f}). Estos resultados distinguen la preferencia por una arquitectura regularizada de la elección automática por MAE. Dropout puede ayudar a regularizar el entrenamiento, pero esta ejecución no demuestra por sí sola que vaya a generalizar mejor a otros periodos.
+
+**LSTM, GRU y la cantidad de historia.** Las referencias de menor MAE por familia son: {'; '.join(referencias)}. Todas las historias tuvieron los mismos {int(catalogo[0]['N_ENTRENAMIENTO']):,} ejemplos de entrenamiento y {int(mae['N'])} objetivos de validación. Por tanto, la comparación cambia la información disponible dentro de cada ventana, sin añadir más fechas de entrenamiento a una opción. Estas referencias se conservan para contrastar el modelo elegido.
 
 **Qué pasó al reducir la red a LSTM16 y Dense8.** {detalle_compactas}. La variante reducida obtuvo un menor MAE en {int(compactas['MEJORA_MAE_PCT'].gt(0).sum())} de las {len(compactas)} historias. Ambas estructuras conservan el one-hot municipal, la salida de una neurona y Dropout en cero. Cambiamos a la vez las unidades LSTM y las neuronas de la Dense intermedia: esta comparación evalúa la estructura completa y no permite separar el efecto de cada reducción. Tener menos parámetros no demuestra por sí solo que haya menos sobreajuste.
 
 **Qué aportaron Dropout y las capas.** Añadir únicamente Dropout redujo el MAE frente a la referencia en **{int(drop['MEJORA_MAE_PCT'].gt(0).sum())} de las {len(drop)} variantes**. Las estructuras de dos o tres capas con Dropout lo redujeron en **{int(profundas['MEJORA_MAE_PCT'].gt(0).sum())} de {len(profundas)}**, y quitar la Dense intermedia, en **{int(simples['MEJORA_MAE_PCT'].gt(0).sum())} de {len(simples)}**. Cada variante se contrasta con su propia familia e historia. Las redes profundas cambian a la vez capas y Dropout: estos resultados no aíslan el efecto de cada cambio. La tabla siguiente permite revisar dónde mejoró o empeoró cada estructura; mejora porcentual positiva significa menor MAE y cambio de RMSE negativo significa menor RMSE.
 
-**Cómo cambia el error entre municipios.** En el candidato provisional, el MAE municipal va de {menor['MAE']:.3f} en {menor['MUNICIPIO']} a {mayor['MAE']:.3f} en {mayor['MUNICIPIO']}. Son errores en cantidades de casos y los municipios tienen volúmenes distintos; esa diferencia no demuestra por sí sola que el modelo funcione proporcionalmente mejor en uno. Se conserva un mismo modelo global, elegido por el MAE general, para los cinco municipios.
+**Cómo cambia el error entre municipios.** En **{elegido['MODELO']}**, el MAE municipal va de {menor['MAE']:.3f} en {menor['MUNICIPIO']} a {mayor['MAE']:.3f} en {mayor['MUNICIPIO']}. Son errores en cantidades de casos y los municipios tienen volúmenes distintos; esa diferencia no demuestra por sí sola que el modelo funcione proporcionalmente mejor en uno. Se conserva el mismo enfoque elegido en 18.2 para los cinco municipios. Su sesgo y sus errores por año se detallan en esa sección.
 
 **Hasta dónde podemos concluir.** Estas diferencias describen una ejecución con una semilla y el mismo bloque de validación 2022–2023. Probar más configuraciones puede producir un mínimo optimista; además, las ventanas se solapan. Todavía hacen falta otros cortes cronológicos o semillas y referencias sencillas de persistencia o estacionales para revisar estabilidad. No se ha demostrado superioridad estadística, causalidad ni utilidad de una intervención sanitaria.
 
@@ -458,7 +464,9 @@ def evaluar_al_cierre(ruta,datos_desarrollo,prep,catalogo,ranking,seleccion):
         archivos=spec['ARCHIVO'].values() if spec['TIPO']=='local' else [spec['ARCHIVO']]
         for archivo in archivos: Path(archivo).resolve().relative_to(ruta.resolve())
     # Registrar candidatos antes de abrir datos de evaluación.
-    (salida/'seleccion_previa.json').write_text(json.dumps({'IDs':ids,'criterio':'MAE de validación','test_historicamente_conocido':True},ensure_ascii=False,indent=2),encoding='utf-8')
+    (salida/'seleccion_previa.json').write_text(json.dumps({'IDs':ids,'ID_ELEGIDO':seleccion['ID_ELEGIDO'],
+        'criterio':seleccion.get('criterio_principal','MAE de validación'),'motivo_eleccion':seleccion.get('motivo_eleccion'),
+        'referencias':'Menor MAE de validación por familia','test_historicamente_conocido':True},ensure_ascii=False,indent=2),encoding='utf-8')
     semanas=pd.concat([pd.read_csv(f'DatosProcesados/semanal_{c}.csv',dtype={'COD_DANE':'string'},parse_dates=['FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig').assign(CONJUNTO=c) for c in ['training','validation','test']],ignore_index=True)
     calendario=semanas[['ANO','SEMANA_EPI']].drop_duplicates().groupby('ANO').size().to_dict()
     for m,g in semanas.groupby('COD_DANE',observed=True):
@@ -509,7 +517,7 @@ def graficar_al_cierre(pred_desarrollo,pred_evaluacion,salida):
     pred=pd.concat([pred_desarrollo.loc[pred_desarrollo['ID'].isin(ids)],pred_evaluacion],ignore_index=True)
     metricas=calcular_metricas(pred,['ID','MODELO','HISTORIA','CONJUNTO'])
     etiquetas={'training':'Entrenamiento · ajuste','validation':'Validación · selección','evaluation':'Evaluación al cierre · test históricamente conocido'}
-    colores=dict(zip(ids,['#8D4CA6','#D97628','#176B93','#238A76','#BE4256','#657B8C']))
+    colores={identificador:plt.get_cmap('tab10')(i%10) for i,identificador in enumerate(ids)}
     archivos=[]
     for codigo,g in pred.groupby('COD_DANE',observed=True,sort=True):
         fig,ejes=plt.subplots(3,1,figsize=(14,10),constrained_layout=True)
