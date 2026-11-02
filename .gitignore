@@ -280,3 +280,10 @@ Desktop.ini
 !/ModeloSeleccionado/preprocesamiento.joblib
 !/ModeloSeleccionado/entradas_ejemplo_validacion.npz
 !/ModeloSeleccionado/modelos/*.keras
+
+# Informe de avance, figuras y archivos de revisión conservados localmente.
+/informeResultado/
+
+# Imagenes PNG y documentos de Word.
+*.[pP][nN][gG]
+*.[dD][oO][cC][xX]
