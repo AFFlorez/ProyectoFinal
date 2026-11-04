@@ -1,0 +1,19 @@
+{
+  "fecha_ejecucion_utc": "2026-11-04T10:56:37.619247+00:00",
+  "directorio_datos": "C:\\Users\\oscen\\OneDrive\\Documentos\\Maestria en Inteligencia Artificial\\Despliegue de Soluciones\\ProyectoFinal\\DataRaw",
+  "archivos_esperados": 19,
+  "archivos_legibles": 19,
+  "filas_totales": 290069,
+  "fechas_vacias": 12,
+  "errores": 0,
+  "avisos": 23,
+  "informativos": 19,
+  "observaciones": [
+    "Validación estructural: no demuestra exactitud epidemiológica ni correspondencia entre semana y fecha.",
+    "Semanas de 1 a 53: solo rango; no se verificó el calendario epidemiológico de cada año.",
+    "Los duplicados exactos se reportan pero no se eliminan: podrían representar casos distintos.",
+    "Los archivos originales Excel no están en el ZIP: solo se verifica la huella del CSV contra el manifiesto.",
+    "Una huella idéntica después de normalizar CRLF a LF prueba equivalencia de bytes normalizados, no identidad byte a byte del archivo ZIP.",
+    "No se emplean datos de test para selección de modelos; este script no entrena ni selecciona modelos."
+  ]
+}
