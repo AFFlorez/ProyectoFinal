@@ -222,14 +222,27 @@ __marimo__/
 # Proyecto de dengue: insumos y archivos generados que se mantienen localmente.
 # Estas reglas no eliminan archivos ya registrados ni su historial en Git.
 # Solo versionar los CSV reducidos y su registro de conversión.
-/DataRaw/*
-!/DataRaw/Datos_*_210.csv
-!/DataRaw/manifiesto_reduccion.json
-!/DataRaw/resumen_reduccion.csv
+/data/DataRaw/*
+!/data/DataRaw/Datos_*_210.csv
+!/data/DataRaw/manifiesto_reduccion.json
+!/data/DataRaw/resumen_reduccion.csv
+/data/DataRawOriginal/
+/data/ShapeMunicipios/
+/data/DatosProcesados/*
+# La app de despliegue usa solo la serie semanal de los cinco municipios (< 1 MB).
+!/data/DatosProcesados/.gitkeep
+!/data/DatosProcesados/semanal_training.csv
+!/data/DatosProcesados/semanal_validation.csv
+!/data/DatosProcesados/semanal_test.csv
+/data/training.csv
+/data/validation.csv
+/data/test.csv
+/ResultadosModelos/
+# Ubicaciones anteriores (antes de data/): evitar subir copias locales por error.
+/DataRaw/
 /DataRawOriginal/
 /ShapeMunicipios/
 /DatosProcesados/
-/ResultadosModelos/
 /training.csv
 /validation.csv
 /test.csv
@@ -268,18 +281,18 @@ Thumbs.db
 Desktop.ini
 
 # Se conservan el notebook principal, los scripts, las dependencias,
-# la documentación y MunicipiosValledelCauca.csv (catálogo pequeño).
-/ShapeMunicipios/CLIMA_DENGUE_VALLE-20261012T225252Z-1-001.zip
-/ShapeMunicipios/SHP_MGN2018_INTGRD_MPIO.zip
-/ShapeMunicipios/SHP_MGN2018_INTGRD_MPIO/
+# la documentación y data/MunicipiosValledelCauca.csv (catálogo pequeño).
 
 # Paquete del modelo seleccionado que sí se incluye en el repositorio.
-!/ModeloSeleccionado/modelo.keras
-!/ModeloSeleccionado/modelo.joblib
-!/ModeloSeleccionado/modelo.ubj
-!/ModeloSeleccionado/preprocesamiento.joblib
-!/ModeloSeleccionado/entradas_ejemplo_validacion.npz
-!/ModeloSeleccionado/modelos/*.keras
+!/modelos/modelo.keras
+!/modelos/modelo.joblib
+!/modelos/modelo.ubj
+!/modelos/preprocesamiento.joblib
+!/modelos/entradas_ejemplo_validacion.npz
+!/modelos/modelos/*.keras
+
+# Despliegue: variables locales y salidas de pruebas.
+/infra/salidas/
 
 # Informe de avance, figuras y archivos de revisión conservados localmente.
 /informeResultado/

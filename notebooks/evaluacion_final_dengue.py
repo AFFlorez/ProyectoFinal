@@ -72,7 +72,7 @@ def congelar_y_exportar():
         assert huella(p)==huella(paquete/nombre)
     joblib.dump(prep, paquete/'preprocesamiento.joblib', compress=3)
     shutil.copy2(Path(__file__).with_name('inferencia_dengue.py'), paquete/'inferencia_dengue.py')
-    calendario = pd.concat([pd.read_csv(f'DatosProcesados/semanal_{c}.csv',usecols=['ANO','SEMANA_EPI','FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig') for c in ['training','validation','test']],ignore_index=True).drop_duplicates().sort_values(['ANO','SEMANA_EPI'])
+    calendario = pd.concat([pd.read_csv(f'data/DatosProcesados/semanal_{c}.csv',usecols=['ANO','SEMANA_EPI','FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig') for c in ['training','validation','test']],ignore_index=True).drop_duplicates().sort_values(['ANO','SEMANA_EPI'])
     assert not calendario.duplicated(['ANO','SEMANA_EPI']).any()
     for _,g in calendario.groupby('ANO'):
         assert len(g) in [52,53] and g['SEMANA_EPI'].tolist()==list(range(1,len(g)+1))
@@ -97,7 +97,7 @@ def preparar_conjuntos(paquete):
     predictor = PronosticadorDengue(paquete)
     fuentes = {}
     for split,archivo,inicio,fin in [('training','training',2007,2021),('validation','validation',2022,2023),('evaluation','test',2024,2025)]:
-        d = pd.read_csv(f'DatosProcesados/semanal_{archivo}.csv',dtype={'COD_DANE':'string'},parse_dates=['FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig')
+        d = pd.read_csv(f'data/DatosProcesados/semanal_{archivo}.csv',dtype={'COD_DANE':'string'},parse_dates=['FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig')
         assert d['ANO'].between(inicio,fin).all() and set(d['COD_DANE'])==set(predictor.config['municipios'])
         fuentes[split] = d
     semanas = pd.concat(fuentes.values(),ignore_index=True)
@@ -356,7 +356,7 @@ Los tres modelos conservan su entrenamiento 2007–2021; la LSTM usa el checkpoi
         np.testing.assert_array_equal(actual['FECHA_OBJETIVO'],ref['FECHA_OBJETIVO'])
         np.testing.assert_allclose(actual['CASOS_PREDICHOS'],ref['CASOS_PREDICHOS'],rtol=2e-5,atol=1e-4)
     pred_ejemplo.to_csv(paquete/'ejemplo_predicciones.csv',index=False,encoding='utf-8-sig',date_format='%Y-%m-%d')
-    entradas={f'DatosProcesados/semanal_{c}.csv':huella(f'DatosProcesados/semanal_{c}.csv') for c in ['training','validation','test']}
+    entradas={f'data/DatosProcesados/semanal_{c}.csv':huella(f'data/DatosProcesados/semanal_{c}.csv') for c in ['training','validation','test']}
     manifiesto={
         'decision_congelada':decision,'test_evaluado':True,'reentrenamiento':False,
         'n_ventanas':{c:len(d['X']) for c,d in datos.items()},

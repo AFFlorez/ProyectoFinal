@@ -16,7 +16,7 @@ from datos_dengue import (
     COLUMNAS_CASOS, DEPARTAMENTO, codigo_departamento, leer_archivo_dengue,
 )
 
-RAIZ = Path(__file__).resolve().parent
+RAIZ = Path(__file__).resolve().parent.parent / 'data'
 DATOS = RAIZ / 'DataRaw'
 ORIGINALES = RAIZ / 'DataRawOriginal'
 ANOS = range(2007, 2026)

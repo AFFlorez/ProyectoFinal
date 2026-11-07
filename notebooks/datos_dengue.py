@@ -16,7 +16,7 @@ def codigo_departamento(serie):
     )
 
 
-def ruta_archivo_dengue(ano, carpeta='DataRaw'):
+def ruta_archivo_dengue(ano, carpeta='data/DataRaw'):
     """Preferir el CSV reducido; admitir el Excel si aún no se ha convertido."""
     carpeta = Path(carpeta)
     for extension in ['csv', 'xlsx']:

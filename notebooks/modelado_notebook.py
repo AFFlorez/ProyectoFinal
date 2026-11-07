@@ -449,7 +449,7 @@ def evaluar_al_cierre(ruta,datos_desarrollo,prep,catalogo,ranking,seleccion):
     (salida/'seleccion_previa.json').write_text(json.dumps({'IDs':ids,'ID_ELEGIDO':seleccion['ID_ELEGIDO'],
         'criterio':seleccion.get('criterio_principal','MAE de validación'),'motivo_eleccion':seleccion.get('motivo_eleccion'),
         'referencias':'Menor MAE de validación por familia','test_historicamente_conocido':True},ensure_ascii=False,indent=2),encoding='utf-8')
-    semanas=pd.concat([pd.read_csv(f'DatosProcesados/semanal_{c}.csv',dtype={'COD_DANE':'string'},parse_dates=['FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig').assign(CONJUNTO=c) for c in ['training','validation','test']],ignore_index=True)
+    semanas=pd.concat([pd.read_csv(f'data/DatosProcesados/semanal_{c}.csv',dtype={'COD_DANE':'string'},parse_dates=['FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig').assign(CONJUNTO=c) for c in ['training','validation','test']],ignore_index=True)
     calendario=semanas[['ANO','SEMANA_EPI']].drop_duplicates().groupby('ANO').size().to_dict()
     for m,g in semanas.groupby('COD_DANE',observed=True):
         semanas.loc[g.index,'CASOS_std']=prep['escaladores_casos'][m].transform(np.log1p(g[['CASOS']].to_numpy(float))).ravel()

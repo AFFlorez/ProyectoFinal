@@ -1,0 +1,16 @@
+# Contexto de construcción = raíz del repositorio (ver infra/docker/Dockerfile).
+# La imagen solo necesita app/, modelos/, data/DatosProcesados/ y requirements/app.txt.
+.git
+.venv
+.jupyter-local
+**/__pycache__
+.pytest_cache
+data/*
+!data/DatosProcesados
+ResultadosModelos
+notebooks
+docs
+infra
+tests
+*.md
+.env
