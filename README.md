@@ -1,261 +1,305 @@
 # Pronóstico semanal de dengue en el Valle del Cauca
 
-Aplicación web y API que estiman los **casos de dengue de la semana t+4** (cuatro semanas adelante) en los cinco municipios del Valle del Cauca con más casos: **Cali, Guadalajara de Buga, Palmira, Tuluá y Yumbo**. El modelo usa las **últimas 20 semanas de casos notificados y clima** (temperatura media, máxima y mínima, y precipitación) para dar a los equipos de vigilancia en salud pública un margen de un mes para planear las acciones de prevención y control.
+Proyecto de grado · **Maestría en Inteligencia Artificial, Universidad de los Andes** · *Proyecto: Despliegue de Soluciones*
 
-- **Problema:** el dengue es endémico en el Valle del Cauca y presenta brotes estacionales. Los casos notificados en SIVIGILA muestran lo que ya ocurrió; un pronóstico con semanas de anticipación ayuda a preparar campañas, insumos y atención.
-- **Solución:** una red **LSTM global** (64 unidades + Dense 16, 19.569 parámetros), elegida entre **160 modelos** (regresión lineal, Random Forest, XGBoost y redes LSTM globales y locales con historias de 8 a 24 semanas) por tener el menor MAE de validación. Se despliega en AWS como una aplicación web con interfaz para el usuario final y una API documentada.
+Construimos y desplegamos un sistema que pronostica los **casos de dengue de la semana t+4** (cuatro semanas adelante) en los cinco municipios del Valle del Cauca con más casos: Cali, Guadalajara de Buga, Palmira, Tuluá y Yumbo. Unimos 19 años de notificaciones del SIVIGILA con clima semanal por municipio y comparamos 160 ajustes de modelos, desde regresión lineal hasta redes LSTM globales y locales. Elegimos, por menor error de validación, una **LSTM global de 64 unidades que usa 20 semanas de historia** (MAE de 11,4 casos en validación). Ese modelo quedó desplegado en AWS como una aplicación web para usuarios no técnicos, con una API documentada y un servidor MLflow que reúne la comparación de modelos. Toda la infraestructura se crea desde código con CloudFormation.
 
-| | Enlace |
+| Recurso | Enlace |
 | --- | --- |
-| Aplicación desplegada | `http://<IP-ELÁSTICA>/` (salida `UrlAplicacion` de la pila de CloudFormation) |
-| Documentación de la API (Swagger) | `http://<IP-ELÁSTICA>/docs` |
-| Modelado y experimentos | [notebooks/README.md](notebooks/README.md) · [notebooks/ProyectoFinal.ipynb](notebooks/ProyectoFinal.ipynb) |
-| Paquete del modelo | [modelos/](modelos/) |
-| Plantilla de infraestructura | [infra/cloudformation/dengue-app.yaml](infra/cloudformation/dengue-app.yaml) |
-| Datos de casos | [Portal SIVIGILA – Instituto Nacional de Salud](https://portalsivigila.ins.gov.co/) (evento 210, dengue) |
+| Aplicación web | `http://<IP-ELÁSTICA>/` |
+| API documentada (Swagger) | `http://<IP-ELÁSTICA>/docs` |
+| Experimentos y modelo registrado (MLflow) | `http://<IP-ELÁSTICA>:5000/` |
+| Notebook de análisis y modelado | [notebooks/ProyectoFinal.ipynb](notebooks/ProyectoFinal.ipynb) · [notebooks/README.md](notebooks/README.md) |
+| Guía de despliegue y operación | [infra/README.md](infra/README.md) |
 
-## Arquitectura
+## Equipo
+
+| Integrante | Correo |
+| --- | --- |
+| Andrés Felipe Flórez | af.florez@uniandes.edu.co |
+| Oscar Morillo | o.morillo@uniandes.edu.co |
+| Jared Foster | j.foster@uniandes.edu.co |
+| Jeferson David Vargas | jd.vargast1@uniandes.edu.co |
+
+## Contenido
+
+1. [Contexto y problema](#contexto-y-problema)
+2. [Objetivos](#objetivos)
+3. [Datos](#datos)
+4. [Metodología](#metodología)
+5. [Resultados](#resultados)
+6. [Solución desplegada](#solución-desplegada)
+7. [Discusión y limitaciones](#discusión-y-limitaciones)
+8. [Trabajo futuro](#trabajo-futuro)
+9. [Reproducibilidad](#reproducibilidad)
+10. [Estructura del repositorio](#estructura-del-repositorio)
+11. [Referencias](#referencias)
+
+## Contexto y problema
+
+El dengue es endémico en el Valle del Cauca y tiene brotes cuya magnitud cambia de un año a otro. La vigilancia en salud pública se apoya en los casos notificados al SIVIGILA, pero esos registros describen lo que ya ocurrió. Las acciones de prevención (control del vector, campañas, preparación de la red de atención) toman semanas en organizarse, por lo que sirven más si se anticipan al aumento de casos.
+
+Planteamos el problema como una **regresión de series de tiempo**: con lo observado hasta la semana *t* en un municipio (casos y clima), estimar el número de casos de la semana *t+4*. Elegimos ese horizonte porque da un mes de margen para actuar y está en el rango que usan los estudios de referencia (de 1 a 12 semanas en Zhao et al., 2020; 4 y 12 semanas en Benedum et al., 2020).
+
+## Objetivos
+
+**General.** Pronosticar con cuatro semanas de anticipación los casos semanales de dengue en los cinco municipios con más casos del Valle del Cauca, y poner ese pronóstico al alcance de usuarios no técnicos mediante una solución desplegada en la nube.
+
+**Específicos.**
+
+1. Construir una serie semanal por municipio que una casos y clima, con una separación temporal estricta entre entrenamiento, validación y prueba.
+2. Comparar modelos de referencia (regresión lineal, Random Forest, XGBoost) con redes LSTM globales y locales, para cinco longitudes de historia.
+3. Elegir el modelo con un criterio fijado de antemano (menor MAE de validación) y evaluarlo una sola vez en el periodo de prueba.
+4. Desplegar el modelo con una interfaz comprensible, una API documentada, trazabilidad de los experimentos e infraestructura reproducible.
+
+## Datos
+
+| Fuente | Contenido | Periodo |
+| --- | --- | --- |
+| SIVIGILA, Instituto Nacional de Salud (evento 210, dengue) | Un registro por caso notificado: departamento, municipio, semana, año y fecha de inicio de síntomas | 2007-2025 |
+| Clima semanal por municipio | Temperatura media, máxima y mínima (°C) y precipitación (mm) | 2007-2025 |
+| Catálogo de municipios del Valle del Cauca | Códigos DANE y nombres | — |
+
+**Preparación.**
+
+- Partimos de **290.069 registros** del Valle del Cauca.
+- Reducimos los archivos anuales a las cinco columnas necesarias.
+- Eliminamos 308 registros: 12 sin fecha de inicio de síntomas y 296 con un código de municipio que no existe en el catálogo. Quedan **289.761 casos**.
+- Elegimos los cinco municipios con más casos acumulados en 2007-2023, sin mirar el periodo de prueba.
+- Contamos los casos por municipio y **semana epidemiológica** (domingo a sábado, años de 52 o 53 semanas) y los unimos con el clima de la misma semana. Las semanas sin casos quedan con cero.
+- Verificamos que no faltaran semanas, que no hubiera duplicados y que las fechas fueran consecutivas.
+
+El resultado es la serie de `data/DatosProcesados/semanal_*.csv`, con cerca de 5.000 filas. Los archivos de clima originales no se versionan por su tamaño (ver [data/README.md](data/README.md)).
+
+**Separación temporal.** Entrenamiento 2007-2021, validación 2022-2023 y prueba 2024-2025. Cada ventana usa solo información disponible hasta la semana de emisión *t*. Con la historia más larga (24 semanas) como soporte común, todas las configuraciones comparten **3.780 objetivos de entrenamiento, 505 de validación y 510 de prueba**.
+
+## Metodología
+
+Seguimos el ciclo de vida de un proyecto de machine learning, desde los datos hasta el servicio desplegado:
+
+```mermaid
+flowchart LR
+    A[SIVIGILA<br/>casos 2007-2025] --> C[Limpieza y<br/>serie semanal]
+    B[Clima semanal<br/>por municipio] --> C
+    C --> D[Transformaciones<br/>log1p + estandarización]
+    D --> E[Ventanas de 8 a 24<br/>semanas, objetivo t+4]
+    E --> F[160 ajustes:<br/>baselines y LSTM]
+    F --> G[Selección por<br/>MAE de validación]
+    G --> H[Evaluación única<br/>en prueba 2024-2025]
+    H --> I[Exportación y<br/>registro en MLflow]
+    I --> J[App y API<br/>Docker en AWS]
+```
+
+**Variables y transformaciones.** Cada semana se describe con siete variables:
+
+- Casos: `log1p` y estandarización **por municipio**, porque la escala de Cali es muy distinta a la de Buga.
+- Temperatura media, máxima y mínima: estandarizadas.
+- Precipitación: `log1p` y estandarización.
+- Seno y coseno de la semana epidemiológica, para representar la estacionalidad.
+
+Todos los escaladores se ajustan **solo con entrenamiento** y se guardan junto al modelo. Las métricas se calculan en casos, después de deshacer las transformaciones, sin redondear ni recortar.
+
+**Modelos comparados.**
+
+| Grupo | Configuraciones | Ajustes |
+| --- | --- | ---: |
+| Baselines | Regresión lineal, Random Forest (300 árboles, profundidad 12) y XGBoost (profundidad 3, tasa 0,03, hasta 800 rondas) × 5 historias | 15 |
+| LSTM globales | 14 arquitecturas × 5 historias. Una red para los cinco municipios, que recibe además el one-hot del municipio. Varían unidades (16, 32, 64; una a tres capas), capa densa intermedia (0, 8, 16) y Dropout (0; 0,2; 0,5). | 70 |
+| LSTM locales | 3 arquitecturas × 5 historias × 5 municipios: una red independiente por municipio | 75 |
+| **Total** | **100 enfoques** (cada enfoque local reúne sus cinco redes) | **160** |
+
+Las historias evaluadas son de 8, 12, 16, 20 y 24 semanas. Las redes se entrenaron con Adam (tasa inicial 0,001), lotes de 32, hasta 200 épocas, EarlyStopping (paciencia 20, restaurando los mejores pesos), reducción de la tasa de aprendizaje (paciencia 5) y semilla 42.
+
+**Criterio de selección.** Menor MAE de validación agrupado, sin redondear, definido antes de mirar el periodo de prueba. La prueba se ejecutó una sola vez, al cerrar la selección, para el modelo elegido y la mejor referencia de cada familia.
+
+## Resultados
+
+**Mejor enfoque de cada familia en validación** (2022-2023, 505 objetivos):
+
+| Familia | Mejor configuración | Historia | MAE | RMSE |
+| --- | --- | ---: | ---: | ---: |
+| **LSTM global** | **64 unidades · Dense 16 · sin Dropout** | **20** | **11,38** | **26,84** |
+| LSTM local (5 redes) | 16 unidades · Dense 8 | 24 | 12,87 | 30,11 |
+| XGBoost | profundidad 3 | 24 | 14,76 | 36,34 |
+| Regresión lineal | — | 12 | 14,84 | 36,87 |
+| Random Forest | 300 árboles | 24 | 14,86 | 36,81 |
+
+La LSTM global reduce el MAE de validación un **23 %** frente al mejor baseline. Los cinco primeros lugares del ranking son LSTM globales de 64 unidades (MAE entre 11,38 y 11,55). Esto sugiere que compartir una sola red entre municipios aprovecha mejor los datos que entrenar una red por municipio, que solo dispone de 756 ventanas de entrenamiento.
+
+**Modelo elegido en los tres periodos:**
+
+| Conjunto | Objetivos | MAE | RMSE |
+| --- | ---: | ---: | ---: |
+| Entrenamiento (2007-2021) | 3.780 | 7,74 | 21,90 |
+| Validación (2022-2023) | 505 | 11,38 | 26,84 |
+| Prueba (2024-2025) | 510 | 38,14 | 95,41 |
+
+**Referencias evaluadas en prueba:** regresión lineal (12 semanas) MAE 31,29; XGBoost 40,60; Random Forest 43,47; LSTM local 48,85.
+
+![Pronósticos del modelo elegido en validación y prueba](modelos/experimentos/figuras/modelo_elegido_validacion_prueba.png)
+
+La comparación completa (los 100 enfoques con sus parámetros, métricas, curvas y figuras) está en MLflow y en `modelos/experimentos/`.
+
+## Solución desplegada
+
+### Arquitectura
 
 ![Arquitectura de despliegue](docs/arquitectura.svg)
 
-Una sola plantilla de **CloudFormation** crea un grupo de seguridad, una instancia **EC2** (Amazon Linux 2023) y una **IP elástica**. Al arrancar, la instancia instala Docker, clona este repositorio, construye la imagen y levanta el contenedor. CloudFormation espera la señal `cfn-signal` de la instancia, que solo se envía cuando `/api/salud` responde. Así, cuando la pila termina en `CREATE_COMPLETE`, la aplicación ya está funcionando.
+Una plantilla de **CloudFormation** crea un grupo de seguridad, una instancia **EC2** (Amazon Linux 2023, t3.medium) y una **IP elástica**. Al arrancar, la instancia instala Docker, clona este repositorio y construye dos contenedores:
 
-Se eligió EC2 + Docker porque funciona dentro de las restricciones del **AWS Academy Learner Lab** (no permite crear roles IAM; se usa `LabInstanceProfile`). El modelo es pequeño (271 KB), así que no hace falta GPU, SageMaker ni un servicio externo. La IP elástica conserva la misma URL cuando el laboratorio se apaga y se vuelve a encender, y el contenedor tiene `restart: unless-stopped`, así que la aplicación vuelve sola.
+- **dengue-app** (puerto 80): API e interfaz web.
+- **dengue-mlflow** (puerto 5000): seguimiento de experimentos.
 
-## Estructura del repositorio
+CloudFormation espera una señal (`cfn-signal`) que la instancia solo envía cuando `/api/salud` responde. Así, una pila en `CREATE_COMPLETE` garantiza que la aplicación ya funciona; si algo falla, la pila se revierte en vez de quedar a medias.
 
-```text
-ProyectoFinal/
-├── README.md                    Este documento
-├── .env.example                 Variables de configuración de la app (copiar a .env)
-│
-├── notebooks/                   Exploración, entrenamiento y experimentación
-│   ├── ProyectoFinal.ipynb      Notebook principal (puntos 1-20)
-│   ├── *.py                     Módulos que usa el notebook y análisis complementarios
-│   ├── Iniciar-Notebook.cmd     Abre JupyterLab con el entorno .venv (Windows)
-│   └── README.md                Detalle del modelado y resultados
-│
-├── data/                        Datos (ver data/README.md)
-│   ├── DataRaw/                 Casos SIVIGILA reducidos al Valle del Cauca, 2007-2025
-│   ├── DatosProcesados/         Serie semanal de los 5 municipios: casos + clima
-│   └── MunicipiosValledelCauca.csv
-│
-├── modelos/                     Modelo final exportado por el notebook (punto 20.4)
-│   ├── modelo.keras             Red LSTM entrenada (271 KB)
-│   ├── preprocesamiento.joblib  Escaladores y codificador ajustados en entrenamiento
-│   ├── configuracion.json       Arquitectura, variables, métricas y versiones
-│   └── sha256.json              Huellas para verificar la integridad
-│
-├── app/                         Aplicación desplegada (FastAPI)
-│   ├── main.py                  API REST e interfaz web
-│   ├── pronosticador.py         Carga del modelo, transformaciones e inferencia
-│   ├── historico.py             Serie 2007-2025 y pronósticos precalculados
-│   ├── calendario.py            Calendario epidemiológico (semanas de domingo a sábado)
-│   ├── config.py                Parámetros leídos de variables de entorno
-│   └── static/                  Interfaz web (HTML, CSS, JavaScript + Chart.js)
-│
-├── infra/                       Despliegue
-│   ├── cloudformation/          Plantilla de infraestructura como código (AWS)
-│   ├── docker/                  Dockerfile y docker-compose.yml
-│   └── scripts/                 desplegar / eliminar (bash y PowerShell)
-│
-├── requirements/                Dependencias de Python, separadas por uso
-│   ├── app.txt                  Aplicación desplegada (Linux, Python 3.13)
-│   ├── dev.txt                  app.txt + herramientas de pruebas
-│   ├── notebook.txt             Librerías del notebook
-│   └── notebook-lock.txt        Versiones exactas del entorno del notebook
-│
-├── tests/                       Pruebas automáticas (reproducción del notebook y API)
-└── docs/                        Diagrama de arquitectura, artículos y entregables
-```
+### Servicio de pronóstico
 
-Los resultados de entrenamiento (`ResultadosModelos/`), el clima original (`data/ShapeMunicipios/`) y la copia completa de SIVIGILA (`data/DataRawOriginal/`) se guardan solo en local y Git los ignora.
+La aplicación ([app/](app/)) está escrita en FastAPI y se organiza en cinco módulos:
 
-## Uso de la aplicación
+| Módulo | Responsabilidad |
+| --- | --- |
+| `pronosticador.py` | Carga el modelo y los escaladores de entrenamiento, verifica su integridad (SHA-256), aplica exactamente las mismas transformaciones del notebook y deshace la escala de la salida. Valida las entradas del usuario con mensajes claros: semanas consecutivas, temperaturas coherentes, sin faltantes. |
+| `historico.py` | Carga la serie 2007-2025, la coteja con el calendario epidemiológico y **precalcula en un solo lote** los ~4.900 pronósticos posibles al iniciar. Así, cada consulta solo filtra una tabla en memoria. |
+| `calendario.py` | Calendario epidemiológico del INS (semana 1 = la que contiene el 4 de enero). Lo validamos contra los archivos de clima y contra el tensor exportado. |
+| `config.py` | Lee todos los parámetros de variables de entorno, validando tipos y rangos. |
+| `main.py` | API REST, interfaz web, medición del tiempo de cada solicitud y manejo de errores. |
 
-La interfaz tiene cuatro pestañas:
+**Nivel de alerta.** Para que el número sea interpretable, comparamos cada pronóstico con la distribución de los casos semanales del municipio en 2007-2021. El nivel es *moderado* desde el percentil 75 y *alto* desde el 90. Los umbrales salen de la media y la desviación de `log1p(casos)` que ya guarda el escalador de entrenamiento, así que no dependen de datos fuera del modelo. Los percentiles se pueden configurar.
 
-1. **Pronóstico.** Se elige el municipio y la semana de emisión, es decir, la última semana epidemiológica con datos observados. La app muestra los casos estimados para cuatro semanas después, el **nivel de alerta** (bajo, moderado o alto), los casos reales si esa semana ya ocurrió y dos gráficas: los casos de entrada con el pronóstico, y el clima de esas semanas. También muestra una tabla con los cinco municipios para la misma semana.
-2. **Desempeño histórico.** Compara, semana a semana, el pronóstico con los casos reales en un rango de años, con MAE, RMSE y sesgo separados por entrenamiento, validación y prueba.
-3. **Usar mis datos.** Se descarga la plantilla CSV, se completan al menos 20 semanas consecutivas por municipio y se sube el archivo. Acepta CSV con coma o con punto y coma y coma decimal (formato de Excel en español).
-4. **Acerca del modelo.** Explica qué hace el modelo, cómo interpretar la alerta, sus métricas y sus limitaciones.
+### Interfaz para el usuario final
 
-**Nivel de alerta.** Compara el pronóstico con la distribución de los casos semanales del municipio en 2007-2021 (los datos de entrenamiento). Se marca moderado desde el percentil 75 y alto desde el percentil 90. Ambos percentiles se configuran con variables de entorno.
+Pensamos la interfaz para personal de vigilancia epidemiológica, no para científicos de datos. Tiene cuatro pestañas:
+
+1. **Pronóstico.** Casos estimados, nivel de alerta y, si la semana ya ocurrió, casos reales y error. Incluye gráficas de las 20 semanas de entrada (casos y clima) y un resumen de los cinco municipios.
+2. **Desempeño histórico.** Pronóstico frente a casos reales en cualquier rango de años, con MAE, RMSE y sesgo separados por entrenamiento, validación y prueba, para que el usuario juzgue cuánto confiar.
+3. **Usar mis datos.** Plantilla CSV descargable y carga de datos nuevos, incluido el formato de Excel en español (punto y coma y coma decimal).
+4. **Acerca del modelo.** Funcionamiento, interpretación de la alerta, métricas y limitaciones.
 
 ### API
 
 | Método | Ruta | Descripción |
 | --- | --- | --- |
-| GET | `/api/salud` | Estado del servicio y tiempos de carga |
-| GET | `/api/modelo` | Arquitectura, variables y métricas del modelo |
-| GET | `/api/configuracion` | Parámetros activos |
-| GET | `/api/municipios` | Municipios, umbrales de alerta y semanas disponibles |
-| GET | `/api/pronostico?codigo=76001&ano=2024&semana=10` | Pronóstico t+4 emitido en una semana del histórico (sin `ano`/`semana`: la última) |
+| GET | `/api/pronostico?codigo=76001&ano=2024&semana=10` | Pronóstico t+4 de un municipio desde una semana del histórico |
 | GET | `/api/resumen?ano=2024&semana=10` | Los cinco municipios para una semana de emisión |
 | GET | `/api/desempeno?codigo=76001&desde=2022&hasta=2025` | Pronósticos frente a casos reales y métricas |
-| GET | `/api/plantilla.csv` | Plantilla de entrada con 20 semanas de ejemplo |
-| POST | `/api/pronostico/archivo` | Pronóstico a partir de un CSV (multipart, campo `archivo`) |
-| POST | `/api/pronostico/semanas` | Pronóstico a partir de semanas en JSON |
+| POST | `/api/pronostico/archivo` · `/api/pronostico/semanas` | Pronóstico con datos propios (CSV o JSON) |
+| GET | `/api/plantilla.csv` · `/api/modelo` · `/api/municipios` · `/api/configuracion` · `/api/salud` | Plantilla, ficha del modelo, catálogo, parámetros y estado |
 
-**Ejemplo con CSV.** La plantilla trae una fila por municipio y semana:
-
-```csv
-COD_DANE,MUNICIPIO,FECHA_INICIO,CASOS,TEMP_MEDIA_C,TEMP_MAX_C,TEMP_MIN_C,PRECIPITACION_MM
-76001,Cali,2021-08-15,112,17.76,22.32,14.71,36.9
-...
-76001,Cali,2021-12-26,78,17.93,21.71,15.04,59.63
-```
-
-```bash
-curl -F archivo=@plantilla_pronostico_dengue.csv http://<IP-ELÁSTICA>/api/pronostico/archivo
-```
-
-Respuesta (resumida). Con las 20 semanas que terminan el 1 de enero de 2022, el modelo estima unos 74 casos en Cali para la semana del 23 al 29 de enero de 2022:
+Ejemplo de respuesta: con las 20 semanas de Cali que terminan el 1 de enero de 2022, el servicio estima 74,2 casos para la semana del 23 al 29 de enero:
 
 ```json
-{"resultados": [{
+{
   "municipio": {"codigo": "76001", "nombre": "Cali"},
   "emision":  {"ano": 2021, "semana": 52, "fecha_inicio": "2021-12-26", "fecha_fin": "2022-01-01"},
   "objetivo": {"ano": 2022, "semana": 4,  "fecha_inicio": "2022-01-23", "fecha_fin": "2022-01-29"},
-  "horizonte_semanas": 4,
-  "casos_predichos": 74.24,
-  "casos_predichos_redondeados": 74,
-  "nivel_alerta": "bajo",
-  "umbrales_alerta": {"moderado": 172.8, "alto": 391.1},
-  "casos_reales": null,
-  "historia": ["...20 semanas de entrada..."]
-}]}
+  "casos_predichos": 74.24, "casos_predichos_redondeados": 74,
+  "nivel_alerta": "bajo", "umbrales_alerta": {"moderado": 172.8, "alto": 391.1}
+}
 ```
 
-Los errores de entrada devuelven `422` con un mensaje en español, por ejemplo: `"76001 (Cali): se requieren 20 semanas; hay 1."`
+### Seguimiento de experimentos con MLflow
 
-## Despliegue en AWS (Learner Lab)
+Los 160 ajustes se hicieron en el notebook, que guarda sus resultados en tablas y figuras. Para darles trazabilidad, `notebooks/exportar_experimentos.py` extrae esos resultados a `modelos/experimentos/`, y el contenedor de MLflow los registra al iniciar:
 
-### Requisitos
+- Una corrida principal (*Comparación de 100 enfoques*) con las tablas y figuras generales.
+- **100 corridas hijas**, una por enfoque, con sus parámetros (familia, arquitectura, historia, Dropout, número de parámetros, configuración de entrenamiento) y métricas (MAE y RMSE de validación; de entrenamiento y prueba cuando existen). Se pueden ordenar y comparar.
+- En la corrida del modelo elegido: su curva de aprendizaje, los pronósticos por municipio, la comparación con XGBoost y los archivos del modelo.
+- El modelo en el **Model Registry** (`pronostico-dengue-t4`, versión 1, alias `produccion`), etiquetado con sus métricas y versiones.
 
-- Sesión del **AWS Academy Learner Lab** iniciada (`Start Lab`, indicador en verde). Región `us-east-1`.
-- El repositorio debe ser **público**. Si es privado, hay que pasar un token de solo lectura en el parámetro `TokenGitHub`.
-- La rama que se despliega (`Rama`, por defecto `main`) debe contener los archivos `data/DatosProcesados/semanal_*.csv`. Sin ella, la app funciona solo en el modo "Usar mis datos".
+Registrar resultados ya calculados, en vez de reentrenar dentro del servidor, mantiene el despliegue liviano (≈ 360 MB de RAM) y reproducible: si se reconstruye el contenedor, el registro se regenera desde el repositorio.
 
-### Opción A: terminal del Learner Lab (recomendada)
+### Parametrización
 
-La terminal que aparece en la página del laboratorio ya tiene credenciales de AWS configuradas:
-
-```bash
-git clone https://github.com/AFFlorez/ProyectoFinal.git
-cd ProyectoFinal
-bash infra/scripts/desplegar.sh
-```
-
-El script valida la plantilla, crea o actualiza la pila `dengue-app`, espera a que termine (de 8 a 15 minutos la primera vez) y muestra la URL. Se pueden cambiar parámetros, por ejemplo: `bash infra/scripts/desplegar.sh Rama=despliegue-aws TipoInstancia=t3.large`.
-
-### Opción B: consola de CloudFormation
-
-1. AWS Console → CloudFormation → *Create stack* → *With new resources*.
-2. *Upload a template file* → `infra/cloudformation/dengue-app.yaml`.
-3. Nombre de la pila: `dengue-app`. Revisar los parámetros (los valores por defecto sirven) → *Submit*.
-4. Cuando el estado sea `CREATE_COMPLETE`, abrir la URL de la pestaña *Outputs* → `UrlAplicacion`.
-
-### Opción C: desde Windows (PowerShell + AWS CLI)
-
-Copiar las credenciales de *AWS Details → AWS CLI → Show* en `%USERPROFILE%\.aws\credentials` y ejecutar:
-
-```powershell
-.\infra\scripts\desplegar.ps1
-```
-
-### Qué pasa cuando el laboratorio se apaga
-
-| Situación | Qué hacer |
-| --- | --- |
-| Termina la sesión de 4 horas (*End Lab* o tiempo agotado) | Nada. La instancia se detiene; al volver a hacer *Start Lab* se enciende, Docker arranca el contenedor y la URL (IP elástica) es la misma. Esperar 1-2 minutos. |
-| Se publicaron cambios en la rama | `ssh -i labsuser.pem ec2-user@<IP>` y luego `sudo dengue-desplegar`. Otra opción es *EC2 → Connect → EC2 Instance Connect*. |
-| Se cambió un parámetro de la app (percentiles, título, workers) | Volver a ejecutar `desplegar.sh Parametro=valor`, o editar `/etc/dengue-app/app.env` y ejecutar `sudo dengue-desplegar`. |
-| *Reset* del laboratorio o se borró la pila | Volver a ejecutar `bash infra/scripts/desplegar.sh`. Todo se recrea desde GitHub. |
-| Eliminar todo | `bash infra/scripts/eliminar.sh` (o borrar la pila desde la consola). |
-
-**Antes de la evaluación:** iniciar el laboratorio unos minutos antes de la hora asignada y comprobar `http://<IP>/api/salud`.
-
-**Diagnóstico:** en la instancia, `sudo tail -100 /var/log/dengue-app-instalacion.log` (instalación) y `sudo docker logs dengue-app` (aplicación). Si la pila falla, CloudFormation la revierte. La causa más común es que el repositorio sea privado o que la rama no exista.
-
-## Ejecución local
-
-Con Docker, desde la raíz del repositorio:
-
-```bash
-cp .env.example .env        # opcional: ajustar parámetros
-docker compose -f infra/docker/docker-compose.yml up -d --build
-# Interfaz: http://localhost:8000   API: http://localhost:8000/docs
-```
-
-Sin Docker (Python 3.13, Linux o macOS; en Windows conviene usar Docker o WSL):
-
-```bash
-python -m venv .venv-app && source .venv-app/bin/activate
-pip install -r requirements/app.txt
-uvicorn app.main:app --port 8000
-```
-
-El entorno del notebook es distinto; su instalación está en [notebooks/README.md](notebooks/README.md#entorno).
-
-## Parametrización
-
-Todos los parámetros se leen de variables de entorno. Están documentados en [.env.example](.env.example). En AWS se fijan con los parámetros de la plantilla y quedan en `/etc/dengue-app/app.env`.
-
-| Variable | Por defecto | Uso |
+| Variable de entorno | Por defecto | Uso |
 | --- | --- | --- |
-| `APP_TITULO` | Pronóstico semanal de dengue · Valle del Cauca | Título de la interfaz |
-| `MODELO_DIR` | `modelos` | Carpeta del paquete del modelo |
-| `MODELO_URL` | vacío | URL https de un `.zip` con el modelo, si no está en el repositorio |
-| `VERIFICAR_SHA256` | `true` | Rechaza un modelo o preprocesamiento alterado |
-| `DATOS_DIR` | `data/DatosProcesados` | Carpeta de `semanal_*.csv` |
-| `ALERTA_PERCENTIL_MODERADO` / `ALERTA_PERCENTIL_ALTO` | `75` / `90` | Umbrales del nivel de alerta |
-| `MAX_SEMANAS_ENTRADA` | `2000` | Límite de filas por solicitud con datos propios |
-| `WORKERS` | `1` (`2` en AWS) | Procesos de uvicorn |
-| `LOG_LEVEL` | `INFO` | Nivel de registro |
-| `CORS_ORIGENES` | `*` | Dominios que pueden consumir la API |
+| `ALERTA_PERCENTIL_MODERADO` / `ALERTA_PERCENTIL_ALTO` | 75 / 90 | Umbrales del nivel de alerta |
+| `MODELO_DIR`, `MODELO_URL`, `VERIFICAR_SHA256` | `modelos`, vacío, `true` | Origen e integridad del modelo |
+| `DATOS_DIR` | `data/DatosProcesados` | Serie histórica |
+| `WORKERS`, `MAX_SEMANAS_ENTRADA` | 1 (2 en AWS), 2000 | Concurrencia y límite de entrada |
+| `APP_TITULO`, `LOG_LEVEL`, `CORS_ORIGENES`, `MLFLOW_PUERTO` | — | Presentación, registros, acceso y enlace a MLflow |
 
-Parámetros de la plantilla de CloudFormation: `RepositorioUrl`, `Rama`, `TokenGitHub`, `ModeloS3Uri`, `TipoInstancia` (t3.small, t3.medium o t3.large), `TamanoDiscoGb`, `PerfilInstancia`, `ParClaves`, `UsarIpElastica`, `PuertoPublico`, `CidrPermitido`, `CidrSsh`, `TituloApp`, `PercentilModerado`, `PercentilAlto`, `Workers` y `NivelLog`.
+Las variables están documentadas en [.env.example](.env.example). En AWS se fijan con los parámetros de la plantilla (tipo de instancia, rama, puertos, MLflow, entre otros), descritos en la [guía de despliegue](infra/README.md#parámetros-de-la-plantilla).
 
-## Consideraciones del modelo
+### Consideraciones del modelo en producción
 
-| Aspecto | Valor |
+| Aspecto | Medición |
 | --- | --- |
-| Arquitectura | LSTM 64 → Dense 16 → salida lineal, con one-hot del municipio |
-| Parámetros / tamaño | 19.569 / 271 KB (`modelo.keras`) |
-| Entrada | 20 semanas × 7 variables: casos, 3 temperaturas, precipitación, seno y coseno de la semana |
-| Salida | `log1p(casos)` estandarizado por municipio, convertido a casos sin redondear |
-| Hardware | Solo CPU; ≈ 290 MB de RAM por proceso; imagen Docker ≈ 2,5 GB (TensorFlow CPU) |
-| Carga | ≈ 5 s (importar TensorFlow y cargar el modelo) |
-| Histórico | ≈ 4.900 pronósticos precalculados en un solo lote en ≈ 4 s al iniciar; cada consulta tarda 20-40 ms |
-| Datos propios | ≈ 0,2 s por archivo de cinco municipios |
-| Integridad | Al iniciar se verifica el SHA-256 de `modelo.keras` y `preprocesamiento.joblib` contra `sha256.json` |
+| Tamaño del modelo | 19.569 parámetros, 271 KB (`modelo.keras`) |
+| Hardware | Solo CPU. ≈ 290 MB de RAM por proceso de la app y ≈ 360 MB para MLflow. Una t3.medium (4 GB) tiene holgura. |
+| Arranque | ≈ 5-8 s para cargar TensorFlow y el modelo, más ≈ 4 s para precalcular el histórico |
+| Latencia | 20-40 ms por consulta del histórico; ≈ 0,2 s por pronóstico desde CSV |
+| Imágenes | App ≈ 2,5 GB (TensorFlow CPU); MLflow ≈ 1,3 GB |
 
-**Estrategia de despliegue.** El modelo cabe en el repositorio, así que se versiona con el código. Las inferencias del histórico se calculan una sola vez al iniciar el servicio (en un lote vectorizado). Por eso las consultas no ejecutan la red y responden en milisegundos, incluso con varios usuarios. TensorFlow se importa de forma diferida dentro del pronosticador. Si el modelo creciera, se puede sacar del repositorio y entregarlo desde S3 (`ModeloS3Uri`) o desde una URL (`MODELO_URL`) sin cambiar el código.
+### Decisiones de diseño
 
-**Gestión del modelo.** El notebook (punto 20.4) exporta el modelo elegido a `modelos/`. Para publicar un modelo nuevo se reemplaza esa carpeta, se ejecutan las pruebas, se hace commit y se ejecuta `sudo dengue-desplegar` en la instancia. Si el paquete se guarda en S3: `aws s3 cp --recursive modelos/ s3://<bucket>/modelos/` y desplegar con `ModeloS3Uri=s3://<bucket>/modelos/`.
+| Alternativa | Decisión | Motivo |
+| --- | --- | --- |
+| **EC2 + Docker + CloudFormation** | **Elegida** | Funciona con las restricciones del Learner Lab (no se pueden crear roles IAM). La infraestructura queda como código y se recrea con un comando, y la IP elástica conserva la URL entre sesiones. |
+| SageMaker (endpoint) | Descartada | Está pensado para modelos grandes o con GPU. Mantener un endpoint encendido consume más presupuesto, y un modelo de 271 KB no lo necesita. |
+| AWS Lambda | Descartada | Importar TensorFlow tarda segundos en cada arranque en frío, y el precálculo del histórico se repetiría. |
+| ECS/Fargate o Elastic Beanstalk | Descartadas | Agregan servicios (balanceador, roles, clúster) sin beneficio para una sola instancia. |
 
-**Desempeño y limitaciones.** El MAE es de 11,4 casos en validación (2022-2023) y de 38,1 en prueba (2024-2025). En 2024-2025 hubo un brote mayor que todos los de entrenamiento, y el modelo tiende a subestimar los picos (sesgo medio negativo). No imputa datos faltantes y solo cubre los cinco municipios entrenados. Es una herramienta de apoyo, no reemplaza la vigilancia epidemiológica. El análisis completo está en [notebooks/README.md](notebooks/README.md).
+Otras decisiones:
 
-## Datos
+- **API e interfaz en un solo servicio.** Comparten origen, así que no hay que configurar CORS ni desplegar dos servicios.
+- **Sin base de datos.** El histórico es de solo lectura y cabe en memoria, y los datos que sube el usuario no se guardan.
+- **MLflow en un contenedor aparte.** Si falla, la aplicación sigue disponible.
 
-El detalle está en [data/README.md](data/README.md). En resumen:
+### Calidad y verificación
 
-- `data/DataRaw/`: casos individuales de SIVIGILA (evento 210) reducidos al Valle del Cauca y a las cinco columnas que se usan.
-- `data/DatosProcesados/semanal_*.csv`: serie semanal por municipio con casos y clima, generada en el punto 11 del notebook. Es lo único que la aplicación necesita del histórico (≈ 5.000 filas, menos de 1 MB).
-- Los archivos de clima originales (`data/ShapeMunicipios/CLIMA_DENGUE_VALLE/`) y los datos completos se conservan fuera de Git por su tamaño. Para regenerar la serie semanal hay que ubicarlos en esa carpeta y ejecutar el notebook hasta el punto 11.
+- **Equivalencia con el notebook.** Las pruebas automáticas ([tests/](tests/)) comprueban que la app reproduce **exactamente** el tensor de entrada y las predicciones exportadas por el notebook (por ejemplo, 74,24 casos para Cali). También cubren el calendario epidemiológico, la validación de entradas y los endpoints.
+- **Infraestructura.** La plantilla pasa `cfn-lint` y el script de arranque pasa `shellcheck`. Simulamos el arranque completo de la instancia en un contenedor Amazon Linux 2023: clonación, construcción, salud del servicio y señal a CloudFormation.
+- **Notebook.** Tras reorganizar el repositorio, volvimos a ejecutar las celdas de preparación de datos para confirmar las rutas nuevas.
 
-## Pruebas
+## Discusión y limitaciones
 
-```bash
-docker build -f infra/docker/Dockerfile -t dengue-app .
-docker run --rm -u 0 -v "$PWD:/srv" -w /srv --entrypoint sh dengue-app -c "pip install -r requirements/dev.txt && python -m pytest -q tests"
+- **Cambio de régimen en 2024-2025.** El periodo de prueba tuvo un brote mayor que todos los de entrenamiento, y el error de todos los modelos creció. La LSTM elegida tiende a **subestimar los picos** (sesgo medio de −10,5 casos en prueba).
+- **Selección por validación.** En prueba, la regresión lineal de 12 semanas tuvo menor MAE (31,3) que la LSTM (38,1). Mantuvimos la selección por validación, tal como la definimos desde el inicio, para no ajustar la decisión al periodo de prueba. Además, ese periodo ya se había observado en etapas anteriores del proyecto, así que no lo presentamos como una evaluación ciega.
+- **Ventanas no independientes.** Las ventanas se solapan, por lo que las métricas no provienen de observaciones independientes.
+- **Alcance.** El modelo cubre solo cinco municipios y necesita 20 semanas completas y consecutivas; no imputa faltantes. Es una herramienta de apoyo y no reemplaza el criterio de los equipos de vigilancia.
+
+**Aportes.** Comparación sistemática de 100 enfoques con un criterio de selección explícito, un pronóstico interpretable (casos, nivel de alerta y desempeño histórico) para usuarios no técnicos, y un despliegue reproducible con trazabilidad de experimentos.
+
+## Trabajo futuro
+
+- Incorporar semanalmente los nuevos casos del SIVIGILA y el clima, y reentrenar de forma periódica.
+- Agregar intervalos de predicción (regresión por cuantiles o predicción conformal) para comunicar la incertidumbre.
+- Probar variables que ayuden a anticipar brotes atípicos: serotipo circulante, índices entomológicos o fenómenos como El Niño.
+- Extender el modelo a más municipios y departamentos.
+- Registrar en MLflow las curvas por época de los 160 ajustes desde el propio entrenamiento.
+- Para un uso real: dominio con HTTPS, autenticación, varias instancias con balanceador y monitoreo de deriva de los datos.
+
+## Reproducibilidad
+
+| Qué | Cómo |
+| --- | --- |
+| Análisis y entrenamiento | Entorno en `requirements/notebook-lock.txt` y notebook en `notebooks/` (ver [notebooks/README.md](notebooks/README.md#entorno)) |
+| Despliegue en AWS | `bash infra/scripts/desplegar.sh` desde la terminal del Learner Lab (ver [infra/README.md](infra/README.md)) |
+| Ejecución local | `docker compose -f infra/docker/docker-compose.yml up -d --build` |
+| Pruebas | `pytest` dentro de la imagen de la app (ver [infra/README.md](infra/README.md#ejecución-local)) |
+
+El repositorio no contiene credenciales. La aplicación es de acceso público y no requiere usuario ni contraseña.
+
+## Estructura del repositorio
+
+```text
+ProyectoFinal/
+├── notebooks/        Notebook principal y módulos de preparación, modelado, análisis y exportación
+├── data/             Casos SIVIGILA reducidos, serie semanal (casos + clima) y catálogo de municipios
+├── modelos/          Modelo elegido (pesos, escaladores, configuración, huellas) y experimentos/
+├── app/              Servicio de pronóstico: FastAPI, pronosticador, histórico e interfaz web
+├── infra/            CloudFormation, Docker, MLflow y scripts de despliegue
+├── requirements/     Dependencias por uso: app, dev, mlflow y notebook
+├── tests/            Pruebas automáticas
+└── docs/             Diagrama de arquitectura, artículos de referencia y entregables
 ```
 
-Las pruebas comprueban que la app **reproduce exactamente** el tensor de entrada y las predicciones que exportó el notebook (`modelos/entradas_ejemplo_validacion.npz` y `predicciones_ejemplo_validacion.csv`), el calendario epidemiológico, la validación de entradas y los endpoints de la API.
+## Referencias
 
-## Credenciales y seguridad
+- Zhao, N., Charland, K., Carabali, M., Nsoesie, E. O., Maheu-Giroux, M., Rees, E., Yuan, M., Garcia Balaguera, C., Jaramillo Ramirez, G. y Zinszer, K. (2020). *Machine learning and dengue forecasting: Comparing random forests and artificial neural networks for predicting dengue burden at national and sub-national scales in Colombia.* PLOS Neglected Tropical Diseases. [PDF](docs/articulos/MachineLearningAndDengueForecasting.pdf)
+- Benedum, C. M., Shea, K. M., Jenkins, H. E., Kim, L. Y. y Markuzon, N. (2020). *Weekly dengue forecasts in Iquitos, Peru; San Juan, Puerto Rico; and Singapore.* PLOS Neglected Tropical Diseases. [PDF](docs/articulos/WeeklyDengueForecastsInIquitosPeru.pdf)
+- Schlesinger, M., Prieto Alvarado, F. E., Borbón Ramos, M. E., Sewe, M. O., Merle, C. S., Kroeger, A. y Hussain-Alkhateeb, L. (2024). *Enabling countries to manage outbreaks: statistical, operational, and contextual analysis of the early warning and response system (EWARS-csd) for dengue outbreaks.* Frontiers in Public Health, 12, 1323618. https://doi.org/10.3389/fpubh.2024.1323618 [PDF](docs/articulos/EnablingCountriesToManageOutbreaks.pdf)
+- Instituto Nacional de Salud. *Portal SIVIGILA* (evento 210, dengue). https://portalsivigila.ins.gov.co/
 
-- La aplicación es de acceso público y no requiere usuario ni contraseña.
-- El repositorio no contiene credenciales. Las credenciales de AWS del Learner Lab son temporales y se configuran fuera del repositorio (`~/.aws/credentials`).
-- El contenedor se ejecuta con un usuario sin privilegios. La plantilla solo abre el puerto de la app y, de forma opcional, SSH con el par de claves `vockey` del laboratorio.
+Comparación de los tres artículos: [docs/articulos/resumen_articulos_dengue.html](docs/articulos/resumen_articulos_dengue.html).

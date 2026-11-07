@@ -48,7 +48,8 @@ code { background: #eef2f6; padding: 1px 5px; border-radius: 4px; font-size: .9e
 }
 .pestana:hover { color: var(--texto); }
 .pestana.activa { color: var(--marca-oscura); border-bottom-color: var(--marca); font-weight: 600; }
-.enlace-api { margin-left: auto; color: var(--acento); text-decoration: none; font-size: .95rem; padding: 10px 4px; }
+.enlaces-externos { margin-left: auto; display: flex; gap: 16px; flex-wrap: wrap; }
+.enlaces-externos a { color: var(--acento); text-decoration: none; font-size: .95rem; padding: 10px 4px; }
 
 main { padding-top: 20px; padding-bottom: 40px; }
 .seccion { display: none; }
@@ -133,7 +134,7 @@ table.compacta { font-size: .9rem; margin: 8px 0; }
 
 @media (max-width: 760px) {
   .graficos, .columnas { grid-template-columns: 1fr; }
-  .enlace-api { margin-left: 0; }
+  .enlaces-externos { margin-left: 0; }
   .pestana { padding: 8px 10px; }
   .tarjeta .cifra { font-size: 1.6rem; }
 }

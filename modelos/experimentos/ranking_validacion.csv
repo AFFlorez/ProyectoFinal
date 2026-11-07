@@ -1,0 +1,101 @@
+POSICION,MODELO,HISTORIA,N,MAE,RMSE,PARAMETROS_RED,PRONOSTICOS_NEGATIVOS,UNIDADES,DENSE_INTERMEDIA,DROPOUT,TIPO,FAMILIA
+1,"LSTM 64 · Dense16 · D0,0 · 20s",20,505,11.377,26.837,19569,0,64,16.0,0.0,red,LSTM global
+2,"LSTM 64 · Dense8 · D0,0 · 24s",24,505,11.404,26.879,19001,0,64,8.0,0.0,red,LSTM global
+3,"LSTM 64 · Dense8 · D0,2 · 16s",16,505,11.459,26.755,19001,0,64,8.0,0.2,red,LSTM global
+4,"LSTM 64 · Dense16 · D0,2 · 24s",24,505,11.536,27.867,19569,0,64,16.0,0.2,red,LSTM global
+5,"LSTM 64 · Dense16 · D0,2 · 20s",20,505,11.55,28.114,19569,0,64,16.0,0.2,red,LSTM global
+6,"LSTM 64 · Dense8 · D0,0 · 20s",20,505,11.673,27.003,19001,0,64,8.0,0.0,red,LSTM global
+7,"LSTM 32 · Dense16 · D0,20 · 24s",24,505,11.677,27.418,5745,0,32,16.0,0.2,red,LSTM global
+8,"LSTM 32 · Dense16 · D0,20 · 20s",20,505,11.784,27.234,5745,0,32,16.0,0.2,red,LSTM global
+9,LSTM 32 · Dense16 · D0 · 20s,20,505,11.896,28.001,5745,0,32,16.0,0.0,red,LSTM global
+10,"LSTM 32 · Dense16 · D0,20 · 16s",16,505,11.905,28.562,5745,0,32,16.0,0.2,red,LSTM global
+11,LSTM 32 · Dense16 · D0 · 12s,12,505,11.908,27.722,5745,1,32,16.0,0.0,red,LSTM global
+12,"LSTM 64 · Dense8 · D0,2 · 20s",20,505,11.924,28.319,19001,0,64,8.0,0.2,red,LSTM global
+13,"LSTM 64 · Dense16 · D0,0 · 24s",24,505,12.0,27.184,19569,0,64,16.0,0.0,red,LSTM global
+14,"LSTM 64 · sin Dense intermedia · D0,2 · 24s",24,505,12.066,28.611,18502,0,64,0.0,0.2,red,LSTM global
+15,LSTM 32→32 · Dense16 · D0 · 20s,20,505,12.096,28.069,14065,0,32 → 32,16.0,0.0,red,LSTM global
+16,LSTM 32 · Dense16 · D0 · 16s,16,505,12.312,29.377,5745,1,32,16.0,0.0,red,LSTM global
+17,"LSTM 64 · Dense8 · D0,0 · 16s",16,505,12.448,29.434,19001,0,64,8.0,0.0,red,LSTM global
+18,"LSTM 64 · sin Dense intermedia · D0,2 · 16s",16,505,12.546,29.563,18502,0,64,0.0,0.2,red,LSTM global
+19,"LSTM 32 · Dense16 · D0,50 · 24s",24,505,12.7,30.986,5745,0,32,16.0,0.5,red,LSTM global
+20,"LSTM 64 · Dense8 · D0,2 · 24s",24,505,12.719,31.306,19001,0,64,8.0,0.2,red,LSTM global
+21,"LSTM 64 · sin Dense intermedia · D0,2 · 20s",20,505,12.777,29.689,18502,1,64,0.0,0.2,red,LSTM global
+22,"LSTM 64 · Dense8 · D0,2 · 12s",12,505,12.784,30.078,19001,0,64,8.0,0.2,red,LSTM global
+23,LSTM 32 · sin Dense intermedia · 24s,24,505,12.8,28.641,5158,0,32,0.0,0.0,red,LSTM global
+24,"LSTM 64 · Dense16 · D0,0 · 16s",16,505,12.817,30.904,19569,0,64,16.0,0.0,red,LSTM global
+25,LSTM local 16 · Dense8 (5 redes) · 24s,24,505,12.872,30.108,8405,0,16,8.0,0.0,local,LSTM local
+26,"LSTM 64 · sin Dense intermedia · D0,2 · 12s",12,505,12.949,31.496,18502,0,64,0.0,0.2,red,LSTM global
+27,"LSTM 64 · Dense8 · D0,0 · 12s",12,505,12.956,31.45,19001,0,64,8.0,0.0,red,LSTM global
+28,"LSTM 32 · Dense16 · D0,20 · 12s",12,505,13.014,31.517,5745,0,32,16.0,0.2,red,LSTM global
+29,"LSTM 64 · sin Dense intermedia · D0,0 · 20s",20,505,13.094,32.607,18502,0,64,0.0,0.0,red,LSTM global
+30,"LSTM 32→16 · Dense16 · D0,20 · 24s",24,505,13.143,32.482,8625,0,32 → 16,16.0,0.2,red,LSTM global
+31,LSTM local 16 · Dense8 (5 redes) · 20s,20,505,13.163,30.54,8405,0,16,8.0,0.0,local,LSTM local
+32,"LSTM 64 · sin Dense intermedia · D0,0 · 24s",24,505,13.203,31.922,18502,2,64,0.0,0.0,red,LSTM global
+33,LSTM 32 · Dense16 · D0 · 24s,24,505,13.305,34.822,5745,1,32,16.0,0.0,red,LSTM global
+34,"LSTM 32 · Dense16 · D0,50 · 20s",20,505,13.34,32.987,5745,0,32,16.0,0.5,red,LSTM global
+35,LSTM 32→32 · Dense16 · D0 · 12s,12,505,13.4,33.379,14065,0,32 → 32,16.0,0.0,red,LSTM global
+36,"LSTM 64 · Dense8 · D0,2 · 8s",8,505,13.64,32.995,19001,0,64,8.0,0.2,red,LSTM global
+37,"LSTM 64 · Dense16 · D0,2 · 16s",16,505,13.666,33.802,19569,0,64,16.0,0.2,red,LSTM global
+38,"LSTM 32 · Dense16 · D0,50 · 16s",16,505,13.714,34.158,5745,0,32,16.0,0.5,red,LSTM global
+39,"LSTM 32→16 · Dense16 · D0,20 · 8s",8,505,13.745,34.549,8625,0,32 → 16,16.0,0.2,red,LSTM global
+40,"LSTM 32→16 · Dense16 · D0,20 · 20s",20,505,13.755,33.019,8625,0,32 → 16,16.0,0.2,red,LSTM global
+41,LSTM 16 · Dense8 · D0 · 16s,16,505,13.763,31.964,1721,0,16,8.0,0.0,red,LSTM global
+42,LSTM 32 · sin Dense intermedia · 20s,20,505,13.775,32.848,5158,0,32,0.0,0.0,red,LSTM global
+43,"LSTM 32 · Dense16 · D0,20 · 8s",8,505,13.847,34.539,5745,0,32,16.0,0.2,red,LSTM global
+44,LSTM 32 · sin Dense intermedia · 16s,16,505,13.874,33.967,5158,0,32,0.0,0.0,red,LSTM global
+45,"LSTM 64 · sin Dense intermedia · D0,0 · 16s",16,505,13.909,33.508,18502,0,64,0.0,0.0,red,LSTM global
+46,LSTM 32→32 · Dense16 · D0 · 16s,16,505,13.922,33.745,14065,0,32 → 32,16.0,0.0,red,LSTM global
+47,"LSTM 64 · Dense16 · D0,2 · 8s",8,505,14.041,34.779,19569,0,64,16.0,0.2,red,LSTM global
+48,LSTM 32→32 · Dense16 · D0 · 8s,8,505,14.17,35.244,14065,0,32 → 32,16.0,0.0,red,LSTM global
+49,"LSTM 64 · sin Dense intermedia · D0,2 · 8s",8,505,14.181,34.121,18502,0,64,0.0,0.2,red,LSTM global
+50,"LSTM 32→16→8 · Dense16 · D0,20 · 24s",24,505,14.24,38.324,9297,0,32 → 16 → 8,16.0,0.2,red,LSTM global
+51,LSTM 16 · Dense8 · D0 · 8s,8,505,14.243,35.128,1721,0,16,8.0,0.0,red,LSTM global
+52,"LSTM 32 · Dense16 · D0,50 · 12s",12,505,14.26,35.608,5745,0,32,16.0,0.5,red,LSTM global
+53,"LSTM 64 · sin Dense intermedia · D0,0 · 12s",12,505,14.282,35.273,18502,0,64,0.0,0.0,red,LSTM global
+54,"LSTM 32→16 · Dense16 · D0,20 · 16s",16,505,14.312,35.244,8625,0,32 → 16,16.0,0.2,red,LSTM global
+55,LSTM 32 · Dense16 · D0 · 8s,8,505,14.334,35.684,5745,0,32,16.0,0.0,red,LSTM global
+56,"LSTM 64 · Dense8 · D0,0 · 8s",8,505,14.388,35.344,19001,0,64,8.0,0.0,red,LSTM global
+57,LSTM 16 · Dense8 · D0 · 12s,12,505,14.498,33.971,1721,0,16,8.0,0.0,red,LSTM global
+58,"LSTM 32→16 · Dense16 · D0,20 · 12s",12,505,14.503,36.052,8625,0,32 → 16,16.0,0.2,red,LSTM global
+59,XGBoost · 24s,24,505,14.759,36.342,No aplica,0,,,,,XGBoost
+60,XGBoost · 20s,20,505,14.813,36.454,No aplica,0,,,,,XGBoost
+61,Regresión lineal · 12s,12,505,14.841,36.872,No aplica,0,,,,,Regresión lineal
+62,Regresión lineal · 16s,16,505,14.852,36.209,No aplica,0,,,,,Regresión lineal
+63,Random Forest · 24s,24,505,14.857,36.81,No aplica,0,,,,,Random Forest
+64,LSTM local (5 redes) · 16s,16,505,14.936,35.79,28325,0,32,16.0,0.0,local,LSTM local
+65,LSTM 32 · sin Dense intermedia · 12s,12,505,14.947,35.961,5158,0,32,0.0,0.0,red,LSTM global
+66,Regresión lineal · 8s,8,505,14.961,37.249,No aplica,0,,,,,Regresión lineal
+67,XGBoost · 16s,16,505,15.013,37.225,No aplica,0,,,,,XGBoost
+68,LSTM local (5 redes) · 20s,20,505,15.025,36.762,28325,0,32,16.0,0.0,local,LSTM local
+69,"LSTM 32→16→8 · Dense16 · D0,20 · 20s",20,505,15.107,39.19,9297,0,32 → 16 → 8,16.0,0.2,red,LSTM global
+70,Random Forest · 20s,20,505,15.159,37.666,No aplica,0,,,,,Random Forest
+71,Regresión lineal · 20s,20,505,15.2,36.988,No aplica,0,,,,,Regresión lineal
+72,"LSTM 32 · Dense16 · D0,50 · 8s",8,505,15.216,38.38,5745,0,32,16.0,0.5,red,LSTM global
+73,LSTM local (5 redes) · 24s,24,505,15.222,37.619,28325,0,32,16.0,0.0,local,LSTM local
+74,Regresión lineal · 24s,24,505,15.289,36.788,No aplica,1,,,,,Regresión lineal
+75,Random Forest · 16s,16,505,15.296,38.394,No aplica,0,,,,,Random Forest
+76,XGBoost · 12s,12,505,15.35,38.109,No aplica,1,,,,,XGBoost
+77,"LSTM 64 · Dense16 · D0,2 · 12s",12,505,15.364,38.798,19569,0,64,16.0,0.2,red,LSTM global
+78,"LSTM 64 · sin Dense intermedia · D0,0 · 8s",8,505,15.386,38.309,18502,0,64,0.0,0.0,red,LSTM global
+79,LSTM 32→32 · Dense16 · D0 · 24s,24,505,15.465,39.954,14065,0,32 → 32,16.0,0.0,red,LSTM global
+80,XGBoost · 8s,8,505,15.487,38.723,No aplica,0,,,,,XGBoost
+81,"LSTM 64 · Dense16 · D0,0 · 8s",8,505,15.543,39.136,19569,0,64,16.0,0.0,red,LSTM global
+82,Random Forest · 12s,12,505,15.732,39.871,No aplica,0,,,,,Random Forest
+83,"LSTM 32→16→8 · Dense16 · D0,20 · 8s",8,505,15.848,40.356,9297,0,32 → 16 → 8,16.0,0.2,red,LSTM global
+84,Random Forest · 8s,8,505,16.086,40.751,No aplica,0,,,,,Random Forest
+85,"LSTM 32→16→8 · Dense16 · D0,20 · 12s",12,505,16.105,42.02,9297,0,32 → 16 → 8,16.0,0.2,red,LSTM global
+86,LSTM local 8 · Dense4 (5 redes) · 8s,8,505,16.133,40.939,2765,0,8,4.0,0.0,local,LSTM local
+87,LSTM 32 · sin Dense intermedia · 8s,8,505,16.357,40.23,5158,0,32,0.0,0.0,red,LSTM global
+88,"LSTM 64 · Dense16 · D0,0 · 12s",12,505,16.791,43.477,19569,0,64,16.0,0.0,red,LSTM global
+89,"LSTM 32→16→8 · Dense16 · D0,20 · 16s",16,505,17.042,44.051,9297,0,32 → 16 → 8,16.0,0.2,red,LSTM global
+90,LSTM local 8 · Dense4 (5 redes) · 12s,12,505,17.394,43.321,2765,0,8,4.0,0.0,local,LSTM local
+91,LSTM 16 · Dense8 · D0 · 20s,20,505,17.564,45.345,1721,1,16,8.0,0.0,red,LSTM global
+92,LSTM 16 · Dense8 · D0 · 24s,24,505,17.649,45.342,1721,0,16,8.0,0.0,red,LSTM global
+93,LSTM local 8 · Dense4 (5 redes) · 16s,16,505,18.414,45.538,2765,0,8,4.0,0.0,local,LSTM local
+94,LSTM local 8 · Dense4 (5 redes) · 20s,20,505,18.5,46.007,2765,0,8,4.0,0.0,local,LSTM local
+95,LSTM local 8 · Dense4 (5 redes) · 24s,24,505,18.62,46.542,2765,0,8,4.0,0.0,local,LSTM local
+96,LSTM local 16 · Dense8 (5 redes) · 8s,8,505,18.621,46.219,8405,0,16,8.0,0.0,local,LSTM local
+97,LSTM local 16 · Dense8 (5 redes) · 16s,16,505,18.637,46.315,8405,0,16,8.0,0.0,local,LSTM local
+98,LSTM local (5 redes) · 12s,12,505,18.647,46.71,28325,0,32,16.0,0.0,local,LSTM local
+99,LSTM local 16 · Dense8 (5 redes) · 12s,12,505,19.051,47.322,8405,0,16,8.0,0.0,local,LSTM local
+100,LSTM local (5 redes) · 8s,8,505,19.735,50.97,28325,0,32,16.0,0.0,local,LSTM local

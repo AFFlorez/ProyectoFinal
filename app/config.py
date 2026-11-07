@@ -43,6 +43,7 @@ class Configuracion:
     max_semanas_entrada: int
     nivel_log: str
     origenes_cors: tuple
+    puerto_mlflow: str
 
 
 def cargar_configuracion():
@@ -57,7 +58,10 @@ def cargar_configuracion():
         max_semanas_entrada=_numero('MAX_SEMANAS_ENTRADA', 2000, int, 20, 100_000),
         nivel_log=_texto('LOG_LEVEL', 'INFO').upper(),
         origenes_cors=tuple(o.strip() for o in _texto('CORS_ORIGENES', '*').split(',') if o.strip()),
+        puerto_mlflow=_texto('MLFLOW_PUERTO', ''),
     )
+    if config.puerto_mlflow and not config.puerto_mlflow.isdigit():
+        raise ValueError('MLFLOW_PUERTO debe ser un número de puerto o quedar vacío.')
     if config.percentil_moderado >= config.percentil_alto:
         raise ValueError('ALERTA_PERCENTIL_MODERADO debe ser menor que ALERTA_PERCENTIL_ALTO.')
     return config

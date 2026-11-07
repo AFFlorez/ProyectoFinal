@@ -10,7 +10,8 @@ data/*
 ResultadosModelos
 notebooks
 docs
-infra
+infra/*
+!infra/mlflow
 tests
 *.md
 .env

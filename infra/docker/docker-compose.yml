@@ -1,5 +1,6 @@
 # Ejecución local, desde la raíz del repositorio:
 #   docker compose -f infra/docker/docker-compose.yml up -d --build
+# Aplicación: http://localhost:8000   MLflow: http://localhost:5000
 services:
   app:
     build:
@@ -13,5 +14,16 @@ services:
         required: false
     environment:
       WORKERS: ${WORKERS:-1}
+      MLFLOW_PUERTO: ${MLFLOW_PUERTO:-5000}
     ports:
       - "${PUERTO_PUBLICO:-8000}:8000"
+
+  mlflow:
+    build:
+      context: ../..
+      dockerfile: infra/mlflow/Dockerfile
+    image: dengue-mlflow:latest
+    container_name: dengue-mlflow
+    restart: unless-stopped
+    ports:
+      - "${MLFLOW_PUERTO:-5000}:5000"
