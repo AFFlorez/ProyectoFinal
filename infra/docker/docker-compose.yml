@@ -1,0 +1,17 @@
+# Ejecución local, desde la raíz del repositorio:
+#   docker compose -f infra/docker/docker-compose.yml up -d --build
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+    image: dengue-app:latest
+    container_name: dengue-app
+    restart: unless-stopped
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      WORKERS: ${WORKERS:-1}
+    ports:
+      - "${PUERTO_PUBLICO:-8000}:8000"

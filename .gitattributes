@@ -1,0 +1,9 @@
+# Los scripts se ejecutan en Linux (EC2 / Learner Lab): siempre con finales LF.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+# Artefactos del modelo: nunca convertir finales de línea (se verifican con SHA-256).
+*.keras binary
+*.joblib binary
+*.npz binary

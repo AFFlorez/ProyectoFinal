@@ -41,7 +41,7 @@ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def cargar_desarrollo():
     """Solo entrenamiento y validación: ni test ni sus tensores o predicciones."""
     prep=joblib.load(PREP)
-    semanas=pd.concat([pd.read_csv(f'DatosProcesados/semanal_{c}.csv',dtype={'COD_DANE':'string'},
+    semanas=pd.concat([pd.read_csv(f'data/DatosProcesados/semanal_{c}.csv',dtype={'COD_DANE':'string'},
         parse_dates=['FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig').assign(CONJUNTO=c)
         for c in ['training','validation']],ignore_index=True)
     assert semanas['ANO'].between(2007,2023).all()
@@ -137,7 +137,7 @@ def iniciar_experimento():
         'criterio_secundario':'RMSE de validación; se informa por separado','semillas':[42],
         'matriz_recurrente':36,'ajustes_nuevos_redes':31,'ajustes_nuevos_xgboost':2,
         'uso_test':False,'test_ya_observado_historicamente':True,'evaluacion_final_activada':False,
-        'insumos_sha256':{str(PREP):sha(PREP),**{f'DatosProcesados/semanal_{c}.csv':sha(f'DatosProcesados/semanal_{c}.csv') for c in ['training','validation']}}}
+        'insumos_sha256':{str(PREP):sha(PREP),**{f'data/DatosProcesados/semanal_{c}.csv':sha(f'data/DatosProcesados/semanal_{c}.csv') for c in ['training','validation']}}}
     (ruta/'configuracion_previa.json').write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding='utf-8')
     (ruta/'catalogo_inicial.json').write_text(json.dumps(catalogo,ensure_ascii=False,indent=2),encoding='utf-8')
     return ruta,catalogo
@@ -485,7 +485,7 @@ def evaluar_al_cierre(ruta,datos_desarrollo,prep,catalogo,ranking,seleccion):
     specs=[next(r for r in catalogo if r['ID']==i) for i in ids]
     # Registrar candidatos antes de abrir datos de evaluación.
     (salida/'seleccion_previa.json').write_text(json.dumps({'IDs':ids,'criterio':'MAE de validación','test_historicamente_conocido':True},ensure_ascii=False,indent=2),encoding='utf-8')
-    semanas=pd.concat([pd.read_csv(f'DatosProcesados/semanal_{c}.csv',dtype={'COD_DANE':'string'},parse_dates=['FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig').assign(CONJUNTO=c) for c in ['training','validation','test']],ignore_index=True)
+    semanas=pd.concat([pd.read_csv(f'data/DatosProcesados/semanal_{c}.csv',dtype={'COD_DANE':'string'},parse_dates=['FECHA_INICIO','FECHA_FIN'],encoding='utf-8-sig').assign(CONJUNTO=c) for c in ['training','validation','test']],ignore_index=True)
     calendario=semanas[['ANO','SEMANA_EPI']].drop_duplicates().groupby('ANO').size().to_dict()
     for m,g in semanas.groupby('COD_DANE',observed=True):
         semanas.loc[g.index,'CASOS_std']=prep['escaladores_casos'][m].transform(np.log1p(g[['CASOS']].to_numpy(float))).ravel()

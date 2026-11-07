@@ -1,0 +1,11 @@
+# Dependencias de la aplicación desplegada (Linux, Python 3.13).
+# Las versiones de modelo/preprocesamiento coinciden con modelos/configuracion.json.
+tensorflow-cpu==2.21.0
+keras==3.15.1
+numpy==2.5.4
+pandas==3.0.6
+scikit-learn==1.9.1
+joblib==1.6.0
+fastapi==0.162.0
+uvicorn==0.54.0
+python-multipart==0.0.33

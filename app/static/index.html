@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pronóstico de dengue</title>
+  <meta name="description" content="Pronóstico semanal de casos de dengue a 4 semanas en cinco municipios del Valle del Cauca.">
+  <link rel="stylesheet" href="/static/estilos.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="cabecera">
+  <div class="contenedor">
+    <p class="sobretitulo">Maestría en Inteligencia Artificial · Proyecto de despliegue</p>
+    <h1 id="titulo">Pronóstico semanal de dengue · Valle del Cauca</h1>
+    <p class="subtitulo">Estima cuántos casos de dengue habrá <strong>4 semanas después</strong> en Cali, Buga, Palmira, Tuluá y Yumbo,
+      usando las últimas <strong>20 semanas</strong> de casos y clima. Pensado para apoyar la planeación de la vigilancia en salud pública.</p>
+  </div>
+</header>
+
+<nav class="pestanas contenedor" role="tablist">
+  <button role="tab" class="pestana activa" data-seccion="pronostico" aria-selected="true">1. Pronóstico</button>
+  <button role="tab" class="pestana" data-seccion="desempeno" aria-selected="false">2. Desempeño histórico</button>
+  <button role="tab" class="pestana" data-seccion="datos" aria-selected="false">3. Usar mis datos</button>
+  <button role="tab" class="pestana" data-seccion="modelo" aria-selected="false">4. Acerca del modelo</button>
+  <a class="enlace-api" href="/docs" target="_blank" rel="noopener">API documentada ↗</a>
+</nav>
+
+<main class="contenedor">
+  <div id="aviso-global" class="aviso oculto" role="status"></div>
+
+  <!-- 1. Pronóstico -->
+  <section id="pronostico" class="seccion activa" role="tabpanel">
+    <details class="ayuda" open>
+      <summary>¿Cómo se usa?</summary>
+      <ol>
+        <li>Elige el <strong>municipio</strong>.</li>
+        <li>Elige la <strong>semana de emisión</strong>: la última semana epidemiológica con datos observados (año y número de semana, de domingo a sábado).</li>
+        <li>Pulsa <strong>Pronosticar</strong>. Verás los casos estimados para la semana que ocurre 4 semanas después, su nivel de alerta y, si ya ocurrió, los casos reales.</li>
+      </ol>
+    </details>
+
+    <form id="form-pronostico" class="formulario">
+      <label>Municipio
+        <select id="p-municipio" name="codigo"></select>
+      </label>
+      <label>Año de emisión
+        <input id="p-ano" type="number" min="2007" max="2100" required>
+      </label>
+      <label>Semana epidemiológica
+        <input id="p-semana" type="number" min="1" max="53" required>
+      </label>
+      <div class="botones">
+        <button type="submit" class="primario">Pronosticar</button>
+        <button type="button" id="p-ultima" class="secundario">Última semana disponible</button>
+      </div>
+    </form>
+    <p id="p-rango" class="nota"></p>
+
+    <div id="p-resultado" class="oculto">
+      <div class="tarjetas">
+        <article class="tarjeta destacada">
+          <h3>Casos estimados</h3>
+          <p class="cifra" id="r-casos">–</p>
+          <p class="detalle" id="r-objetivo"></p>
+        </article>
+        <article class="tarjeta" id="r-tarjeta-alerta">
+          <h3>Nivel de alerta</h3>
+          <p class="cifra"><span id="r-alerta" class="insignia">–</span></p>
+          <p class="detalle" id="r-umbrales"></p>
+        </article>
+        <article class="tarjeta">
+          <h3>Casos reales registrados</h3>
+          <p class="cifra" id="r-reales">–</p>
+          <p class="detalle" id="r-error"></p>
+        </article>
+      </div>
+      <p class="nota" id="r-conjunto"></p>
+
+      <div class="graficos">
+        <figure>
+          <figcaption>Casos semanales: 20 semanas usadas como entrada, casos posteriores y pronóstico</figcaption>
+          <div class="lienzo"><canvas id="g-casos" aria-label="Gráfico de casos semanales y pronóstico"></canvas></div>
+        </figure>
+        <figure>
+          <figcaption>Clima de las 20 semanas de entrada</figcaption>
+          <div class="lienzo"><canvas id="g-clima" aria-label="Gráfico de temperatura y precipitación"></canvas></div>
+        </figure>
+      </div>
+
+      <h2>Los cinco municipios en la misma semana</h2>
+      <div class="tabla-desplazable">
+        <table id="t-resumen">
+          <thead><tr><th>Municipio</th><th>Semana objetivo</th><th class="num">Casos estimados</th><th>Alerta</th><th class="num">Casos reales</th><th class="num">Error absoluto</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Desempeño -->
+  <section id="desempeno" class="seccion" role="tabpanel">
+    <p class="intro">Compara, semana a semana, lo que el modelo habría pronosticado con lo que realmente ocurrió.
+      Así se puede juzgar qué tan confiable es el pronóstico en cada municipio y periodo.</p>
+    <form id="form-desempeno" class="formulario">
+      <label>Municipio <select id="d-municipio"></select></label>
+      <label>Desde (año objetivo) <input id="d-desde" type="number" min="2007" max="2100" value="2022"></label>
+      <label>Hasta <input id="d-hasta" type="number" min="2007" max="2100" value="2025"></label>
+      <div class="botones"><button type="submit" class="primario">Ver desempeño</button></div>
+    </form>
+    <div id="d-resultado" class="oculto">
+      <figure>
+        <figcaption>Casos reales frente a casos pronosticados con 4 semanas de anticipación</figcaption>
+        <div class="lienzo alto"><canvas id="g-desempeno" aria-label="Gráfico de casos reales y pronosticados"></canvas></div>
+      </figure>
+      <div class="tabla-desplazable">
+        <table id="t-metricas">
+          <thead><tr><th>Periodo</th><th class="num">Semanas</th><th class="num">MAE (casos)</th><th class="num">RMSE (casos)</th><th class="num">Sesgo medio</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <ul class="nota lista">
+        <li><strong>Entrenamiento (2007-2021):</strong> datos con los que el modelo aprendió; su error es optimista.</li>
+        <li><strong>Validación (2022-2023):</strong> se usó para elegir el modelo entre 160 alternativas.</li>
+        <li><strong>Prueba (2024-2025):</strong> periodo reservado para la evaluación final, con un brote mayor que los observados antes.</li>
+        <li><strong>MAE</strong>: error promedio en casos. <strong>Sesgo negativo</strong>: el modelo tiende a subestimar.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3. Datos propios -->
+  <section id="datos" class="seccion" role="tabpanel">
+    <p class="intro">Si tienes datos más recientes, puedes obtener un pronóstico subiendo un archivo CSV con al menos
+      <strong>20 semanas consecutivas</strong> por municipio. Se usan las 20 más recientes de cada municipio.</p>
+    <ol class="pasos">
+      <li><a id="enlace-plantilla" class="boton secundario" href="/api/plantilla.csv" download>Descargar plantilla CSV</a></li>
+      <li>Completa una fila por municipio y semana con estas columnas:
+        <div class="tabla-desplazable">
+          <table class="compacta">
+            <thead><tr><th>Columna</th><th>Descripción</th><th>Ejemplo</th></tr></thead>
+            <tbody>
+              <tr><td><code>COD_DANE</code></td><td>Código del municipio: 76001 Cali, 76111 Buga, 76520 Palmira, 76834 Tuluá, 76892 Yumbo</td><td>76001</td></tr>
+              <tr><td><code>FECHA_INICIO</code></td><td>Domingo en que inicia la semana epidemiológica (AAAA-MM-DD)</td><td>2025-12-14</td></tr>
+              <tr><td><code>CASOS</code></td><td>Casos notificados con inicio de síntomas en esa semana</td><td>42</td></tr>
+              <tr><td><code>TEMP_MEDIA_C</code>, <code>TEMP_MAX_C</code>, <code>TEMP_MIN_C</code></td><td>Temperaturas de la semana en °C (mín ≤ media ≤ máx)</td><td>24.1 · 30.2 · 18.9</td></tr>
+              <tr><td><code>PRECIPITACION_MM</code></td><td>Lluvia acumulada en la semana (mm)</td><td>35.4</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </li>
+      <li>
+        <form id="form-archivo" class="formulario en-linea">
+          <input id="archivo" type="file" accept=".csv,text/csv" required aria-label="Archivo CSV">
+          <button type="submit" class="primario">Pronosticar con mi archivo</button>
+        </form>
+      </li>
+    </ol>
+    <div id="a-resultado" class="oculto">
+      <div class="tabla-desplazable">
+        <table id="t-archivo">
+          <thead><tr><th>Municipio</th><th>Última semana observada</th><th>Semana objetivo</th><th class="num">Casos estimados</th><th>Alerta</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <figure>
+        <figcaption>Casos de entrada y pronóstico por municipio</figcaption>
+        <div class="lienzo"><canvas id="g-archivo" aria-label="Gráfico de pronósticos con datos propios"></canvas></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 4. Modelo -->
+  <section id="modelo" class="seccion" role="tabpanel">
+    <div class="columnas">
+      <article class="tarjeta texto">
+        <h2>Qué hace el modelo</h2>
+        <p>Una red neuronal recurrente <strong>LSTM global</strong> recibe, para un municipio, las últimas 20 semanas de:
+          casos, temperatura media, máxima y mínima, precipitación y la posición de la semana en el año (estacionalidad).
+          Además recibe qué municipio es. Devuelve los casos esperados en la semana <strong>t+4</strong>.</p>
+        <p>Se eligió entre <strong>160 modelos</strong> (regresión lineal, Random Forest, XGBoost y redes LSTM globales y locales con
+          historias de 8 a 24 semanas) por tener el <strong>menor error absoluto medio en validación</strong>.</p>
+        <dl id="m-ficha" class="ficha"></dl>
+      </article>
+      <article class="tarjeta texto">
+        <h2>Cómo interpretar el resultado</h2>
+        <ul>
+          <li>El valor es una <strong>estimación continua</strong>; se muestra redondeado a casos enteros.</li>
+          <li>El <strong>nivel de alerta</strong> compara el pronóstico con la historia del municipio en 2007-2021:
+            <span class="insignia bajo">bajo</span> por debajo del percentil <span class="p-mod">75</span>,
+            <span class="insignia moderado">moderado</span> entre los percentiles <span class="p-mod">75</span> y <span class="p-alto">90</span>,
+            <span class="insignia alto">alto</span> por encima del percentil <span class="p-alto">90</span>.</li>
+          <li>Es una herramienta de apoyo: no reemplaza la vigilancia epidemiológica ni el criterio de los equipos de salud.</li>
+        </ul>
+        <h2>Limitaciones</h2>
+        <ul>
+          <li>En 2024-2025 hubo un brote mayor a los vistos en entrenamiento; allí el error aumenta (MAE de prueba ≈ 38 casos frente a ≈ 11 en validación) y el modelo tiende a <strong>subestimar los picos</strong>.</li>
+          <li>Solo cubre los cinco municipios con más casos del Valle del Cauca.</li>
+          <li>Requiere 20 semanas completas y consecutivas; no imputa datos faltantes.</li>
+        </ul>
+      </article>
+    </div>
+    <h2>Métricas en casos (sin redondear)</h2>
+    <div class="tabla-desplazable">
+      <table id="t-modelo"><thead><tr><th>Conjunto</th><th class="num">Objetivos</th><th class="num">MAE</th><th class="num">RMSE</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+</main>
+
+<footer class="pie contenedor">
+  <p>Datos: SIVIGILA (INS Colombia) y clima semanal por municipio. Modelo y código en el repositorio del proyecto.
+    <span id="pie-estado"></span></p>
+</footer>
+</body>
+</html>
