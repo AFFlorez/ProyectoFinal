@@ -4,7 +4,8 @@ Este programa SOLO LEE los CSV. No limpia, elimina ni modifica registros.
 Para ejecutarlo desde la carpeta ProyectoFinal:
     python validar_datos_dengue.py
 
-Los reportes se guardan en AuditoriaDatos/ (fuera de DataRaw).
+Lee data/DataRaw (o DataRaw en la raíz, en la estructura anterior).
+Los reportes se guardan en Auditoria_Datos/ (fuera de los datos).
 """
 from __future__ import annotations
 
@@ -18,6 +19,13 @@ import pandas as pd
 
 COLUMNAS = ['COD_DPTO_O', 'COD_MUN_O', 'SEMANA', 'ANO', 'INI_SIN']
 ANOS = range(2007, 2026)
+RAIZ = Path(__file__).resolve().parent.parent
+# Tras la reorganización del repositorio los CSV están en data/DataRaw;
+# se admite también la ubicación anterior (DataRaw en la raíz).
+DATA_DIR_POR_DEFECTO = next(
+    (ruta for ruta in (RAIZ / 'data' / 'DataRaw', RAIZ / 'DataRaw') if ruta.is_dir()),
+    RAIZ / 'data' / 'DataRaw',
+)
 
 
 def huella_sha256(ruta: Path) -> str:
@@ -189,7 +197,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--data-dir',
         type=Path,
-        default=Path(__file__).resolve().parent.parent / 'DataRaw'
+        default=DATA_DIR_POR_DEFECTO
     )
 
     
