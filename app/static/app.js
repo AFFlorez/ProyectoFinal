@@ -207,6 +207,11 @@ async function iniciar() {
   try {
     const [conf, lista] = await Promise.all([api('/api/configuracion'), api('/api/municipios')]);
     $('titulo').textContent = conf.titulo;
+    if (conf.puerto_mlflow) {
+      // MLflow corre en la misma instancia, en otro puerto; se abre en la vista de entrenamiento.
+      $('enlace-mlflow').href = `${location.protocol}//${location.hostname}:${conf.puerto_mlflow}/#/experiments/1/runs?workflowType=machine_learning`;
+      $('enlace-mlflow').classList.remove('oculto');
+    }
     document.querySelectorAll('.p-mod').forEach((e) => { e.textContent = conf.percentil_alerta_moderada; });
     document.querySelectorAll('.p-alto').forEach((e) => { e.textContent = conf.percentil_alerta_alta; });
     municipios = lista.municipios;

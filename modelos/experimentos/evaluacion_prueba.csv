@@ -1,0 +1,6 @@
+ROL,MODELO,HISTORIA,N,MAE,RMSE,SESGO_MEDIO,PRONOSTICOS_NEGATIVOS
+Modelo elegido,"LSTM 64 · Dense16 · D0,0 · 20s",20,510,38.139,95.413,-10.451,0
+Referencia de validación,LSTM local 16 · Dense8 (5 redes) · 24s,24,510,48.849,112.727,-30.484,0
+Referencia de validación,Regresión lineal · 12s,12,510,31.285,78.708,-8.685,0
+Referencia de validación,Random Forest · 24s,24,510,43.465,104.825,-34.227,0
+Referencia de validación,XGBoost · 24s,24,510,40.596,95.975,-32.174,0

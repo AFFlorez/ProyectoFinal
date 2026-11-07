@@ -300,3 +300,6 @@ Desktop.ini
 # Imagenes PNG y documentos de Word.
 *.[pP][nN][gG]
 *.[dD][oO][cC][xX]
+
+# Figuras de la comparación de modelos que se muestran en MLflow (modelos/experimentos).
+!/modelos/experimentos/figuras/*.png

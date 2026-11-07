@@ -1,0 +1,31 @@
+MODELO,CONJUNTO,N,MAE,RMSE
+Regresión lineal · 8s,training,3780,10.634,31.885
+Regresión lineal · 8s,validation,505,14.961,37.249
+Random Forest · 8s,training,3780,5.506,16.029
+Random Forest · 8s,validation,505,16.086,40.751
+XGBoost · 8s,training,3780,8.487,25.194
+XGBoost · 8s,validation,505,15.487,38.723
+Regresión lineal · 12s,training,3780,10.626,31.421
+Regresión lineal · 12s,validation,505,14.841,36.872
+Random Forest · 12s,training,3780,5.359,15.82
+Random Forest · 12s,validation,505,15.732,39.871
+XGBoost · 12s,training,3780,8.254,24.542
+XGBoost · 12s,validation,505,15.35,38.109
+Regresión lineal · 16s,training,3780,10.459,30.854
+Regresión lineal · 16s,validation,505,14.852,36.209
+Random Forest · 16s,training,3780,5.198,15.182
+Random Forest · 16s,validation,505,15.296,38.394
+XGBoost · 16s,training,3780,8.171,24.329
+XGBoost · 16s,validation,505,15.013,37.225
+Regresión lineal · 20s,training,3780,10.43,30.424
+Regresión lineal · 20s,validation,505,15.2,36.988
+Random Forest · 20s,training,3780,5.087,14.772
+Random Forest · 20s,validation,505,15.159,37.666
+XGBoost · 20s,training,3780,8.197,23.953
+XGBoost · 20s,validation,505,14.813,36.454
+Regresión lineal · 24s,training,3780,10.366,30.175
+Regresión lineal · 24s,validation,505,15.289,36.788
+Random Forest · 24s,training,3780,5.048,14.711
+Random Forest · 24s,validation,505,14.857,36.81
+XGBoost · 24s,training,3780,7.86,22.953
+XGBoost · 24s,validation,505,14.759,36.342

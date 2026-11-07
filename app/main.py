@@ -162,7 +162,7 @@ def salud():
 def configuracion():
     return {'titulo': config.titulo, 'percentil_alerta_moderada': config.percentil_moderado,
             'percentil_alerta_alta': config.percentil_alto, 'max_semanas_entrada': config.max_semanas_entrada,
-            'verificar_sha256': config.verificar_integridad,
+            'verificar_sha256': config.verificar_integridad, 'puerto_mlflow': config.puerto_mlflow or None,
             'historico_disponible': estado['historico'].disponible, 'aviso_historico': estado['historico'].mensaje}
 
 

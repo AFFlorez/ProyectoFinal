@@ -55,6 +55,7 @@ El notebook y sus módulos están en `notebooks/`, pero trabajan desde la raíz 
 - `data/DatosProcesados/`: series semanales separadas en entrenamiento, validación y test. Solo `semanal_*.csv` (cinco municipios, menos de 1 MB) se versiona, porque la aplicación desplegada la usa como histórico.
 - `notebooks/modelado_notebook.py`: construcción de ventanas, arquitecturas, métricas, gráficas y exportación.
 - `notebooks/analisis_validacion.py`: diagnóstico del modelo seleccionado a partir de sus predicciones de validación.
+- `notebooks/exportar_experimentos.py`: copia a `modelos/experimentos/` las tablas y figuras de la comparación de modelos que quedaron en las salidas del notebook. Es lo que se registra en MLflow. Hay que ejecutarlo después de una corrida completa.
 - `notebooks/inferencia_dengue.py`: versión anterior de la inferencia (historia de 16 semanas). La aplicación usa `app/pronosticador.py`, adaptado al modelo final de 20 semanas.
 - `modelos/`: paquete del modelo elegido que se incluye en Git, con pesos, escaladores, configuración y ejemplo de carga. El punto 20.4 actualiza esta carpeta.
 - `ResultadosModelos/entrenamiento_en_notebook/ejecucion_*/`: modelos, configuración, escaladores, historiales, predicciones, tablas, figuras y verificaciones de cada corrida.

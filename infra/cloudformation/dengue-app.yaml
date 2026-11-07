@@ -1,8 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
   Pronóstico semanal de dengue (Valle del Cauca): API FastAPI + interfaz web en una
-  instancia EC2 con Docker. Pensada para AWS Academy Learner Lab: no crea roles IAM
-  (usa LabInstanceProfile) y recrea todo el despliegue desde el repositorio de GitHub.
+  instancia EC2 con Docker, y MLflow con la comparación de modelos en la misma instancia.
+  Pensada para AWS Academy Learner Lab: no crea roles IAM (usa LabInstanceProfile) y
+  recrea todo el despliegue desde el repositorio de GitHub.
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -15,6 +16,8 @@ Metadata:
         Parameters: [PuertoPublico, CidrPermitido, CidrSsh]
       - Label: {default: Parámetros de la aplicación}
         Parameters: [TituloApp, PercentilModerado, PercentilAlto, Workers, NivelLog]
+      - Label: {default: Seguimiento de experimentos (MLflow)}
+        Parameters: [HabilitarMlflow, PuertoMlflow]
     ParameterLabels:
       TokenGitHub: {default: Token de GitHub (solo si el repositorio es privado)}
 
@@ -109,12 +112,23 @@ Parameters:
     Type: String
     Default: INFO
     AllowedValues: [DEBUG, INFO, WARNING, ERROR]
+  HabilitarMlflow:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Servidor MLflow con los 100 enfoques comparados y el modelo registrado (misma instancia e IP).
+  PuertoMlflow:
+    Type: Number
+    Default: 5000
+    MinValue: 1024
+    MaxValue: 65535
 
 Conditions:
   ConClave: !Not [!Equals [!Ref ParClaves, '']]
   ConPerfil: !Not [!Equals [!Ref PerfilInstancia, '']]
   ConIpElastica: !Equals [!Ref UsarIpElastica, 'true']
   PuertoEstandar: !Equals [!Ref PuertoPublico, 80]
+  ConMlflow: !Equals [!Ref HabilitarMlflow, 'true']
 
 Resources:
   GrupoSeguridad:
@@ -134,6 +148,14 @@ Resources:
             ToPort: 22
             CidrIp: !Ref CidrSsh
             Description: SSH para administracion
+          - !Ref AWS::NoValue
+        - !If
+          - ConMlflow
+          - IpProtocol: tcp
+            FromPort: !Ref PuertoMlflow
+            ToPort: !Ref PuertoMlflow
+            CidrIp: !Ref CidrPermitido
+            Description: MLflow (experimentos y modelo registrado)
           - !Ref AWS::NoValue
       Tags:
         - {Key: Name, Value: !Sub '${AWS::StackName}-sg'}
@@ -157,77 +179,99 @@ Resources:
         - {Key: Name, Value: !Ref AWS::StackName}
         - {Key: Proyecto, Value: pronostico-dengue}
       UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          # Instalación inicial. Registro en /var/log/dengue-app-instalacion.log
-          set -euo pipefail
-          exec > >(tee -a /var/log/dengue-app-instalacion.log) 2>&1
-          senal() { /opt/aws/bin/cfn-signal -e "$1" --stack '${AWS::StackName}' --resource Instancia --region '${AWS::Region}' || true; }
-          trap 'senal 1' ERR
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            # Instalación inicial. Registro en /var/log/dengue-app-instalacion.log
+            set -euo pipefail
+            exec > >(tee -a /var/log/dengue-app-instalacion.log) 2>&1
+            senal() { /opt/aws/bin/cfn-signal -e "$1" --stack '${AWS::StackName}' --resource Instancia --region '${AWS::Region}' || true; }
+            trap 'senal 1' ERR
 
-          dnf install -y docker git aws-cfn-bootstrap
-          systemctl enable --now docker
+            dnf install -y docker git aws-cfn-bootstrap
+            systemctl enable --now docker
 
-          # Memoria de intercambio: la instalación de TensorFlow es exigente en t3.small.
-          if [ ! -f /swapfile ]; then
-            dd if=/dev/zero of=/swapfile bs=1M count=2048
-            chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-            echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
-          fi
+            # Memoria de intercambio: la instalación de TensorFlow es exigente en t3.small.
+            if [ ! -f /swapfile ]; then
+              dd if=/dev/zero of=/swapfile bs=1M count=2048
+              chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+              echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
+            fi
 
-          mkdir -p /etc/dengue-app
-          cat > /etc/dengue-app/despliegue.conf <<'CONF'
-          REPO_URL='${RepositorioUrl}'
-          RAMA='${Rama}'
-          TOKEN_GITHUB='${TokenGitHub}'
-          MODELO_S3_URI='${ModeloS3Uri}'
-          PUERTO_PUBLICO='${PuertoPublico}'
-          CONF
-          # Variables de la aplicación (ver .env.example). Se pueden editar y aplicar con: sudo dengue-desplegar
-          cat > /etc/dengue-app/app.env <<'CONF'
-          APP_TITULO=${TituloApp}
-          ALERTA_PERCENTIL_MODERADO=${PercentilModerado}
-          ALERTA_PERCENTIL_ALTO=${PercentilAlto}
-          WORKERS=${Workers}
-          LOG_LEVEL=${NivelLog}
-          MODELO_DIR=modelos
-          DATOS_DIR=data/DatosProcesados
-          VERIFICAR_SHA256=true
-          CONF
-          chmod 600 /etc/dengue-app/*
+            mkdir -p /etc/dengue-app
+            cat > /etc/dengue-app/despliegue.conf <<'CONF'
+            REPO_URL='${RepositorioUrl}'
+            RAMA='${Rama}'
+            TOKEN_GITHUB='${TokenGitHub}'
+            MODELO_S3_URI='${ModeloS3Uri}'
+            PUERTO_PUBLICO='${PuertoPublico}'
+            MLFLOW='${HabilitarMlflow}'
+            MLFLOW_PUERTO='${PuertoMlflow}'
+            CONF
+            # Variables de la aplicación (ver .env.example). Se pueden editar y aplicar con: sudo dengue-desplegar
+            cat > /etc/dengue-app/app.env <<'CONF'
+            APP_TITULO=${TituloApp}
+            ALERTA_PERCENTIL_MODERADO=${PercentilModerado}
+            ALERTA_PERCENTIL_ALTO=${PercentilAlto}
+            WORKERS=${Workers}
+            LOG_LEVEL=${NivelLog}
+            MODELO_DIR=modelos
+            DATOS_DIR=data/DatosProcesados
+            VERIFICAR_SHA256=true
+            MLFLOW_PUERTO=${PuertoMlflowApp}
+            CONF
+            chmod 600 /etc/dengue-app/*
 
-          # Script reutilizable: clona o actualiza el repositorio, construye la imagen y reinicia el contenedor.
-          cat > /usr/local/bin/dengue-desplegar <<'SCRIPT'
-          #!/bin/bash
-          set -euo pipefail
-          source /etc/dengue-app/despliegue.conf
-          DESTINO=/opt/dengue-app
-          URL="$REPO_URL"
-          if [ -n "$TOKEN_GITHUB" ]; then URL="https://x-access-token:$TOKEN_GITHUB@${!REPO_URL#https://}"; fi
-          if [ -d "$DESTINO/.git" ]; then
-            git -C "$DESTINO" fetch --depth 1 "$URL" "$RAMA"
-            git -C "$DESTINO" reset --hard FETCH_HEAD
-          else
-            git clone --depth 1 --branch "$RAMA" "$URL" "$DESTINO"
-            git -C "$DESTINO" remote set-url origin "$REPO_URL"
-          fi
-          if [ -n "$MODELO_S3_URI" ]; then aws s3 cp --recursive "$MODELO_S3_URI" "$DESTINO/modelos/"; fi
-          docker build -t dengue-app:latest -f "$DESTINO/infra/docker/Dockerfile" "$DESTINO"
-          docker rm -f dengue-app 2>/dev/null || true
-          docker run -d --name dengue-app --restart unless-stopped \
-            --env-file /etc/dengue-app/app.env -p "$PUERTO_PUBLICO:8000" dengue-app:latest
-          for intento in $(seq 1 60); do
-            if curl -sf "http://127.0.0.1:$PUERTO_PUBLICO/api/salud"; then echo; echo 'Aplicacion disponible.'; exit 0; fi
-            sleep 5
-          done
-          docker logs --tail 80 dengue-app
-          exit 1
-          SCRIPT
-          chmod 755 /usr/local/bin/dengue-desplegar
+            # Script reutilizable: clona o actualiza el repositorio, construye la imagen y reinicia el contenedor.
+            cat > /usr/local/bin/dengue-desplegar <<'SCRIPT'
+            #!/bin/bash
+            set -euo pipefail
+            source /etc/dengue-app/despliegue.conf
+            DESTINO=/opt/dengue-app
+            URL="$REPO_URL"
+            if [ -n "$TOKEN_GITHUB" ]; then URL="https://x-access-token:$TOKEN_GITHUB@${!REPO_URL#https://}"; fi
+            if [ -d "$DESTINO/.git" ]; then
+              git -C "$DESTINO" fetch --depth 1 "$URL" "$RAMA"
+              git -C "$DESTINO" reset --hard FETCH_HEAD
+            else
+              git clone --depth 1 --branch "$RAMA" "$URL" "$DESTINO"
+              git -C "$DESTINO" remote set-url origin "$REPO_URL"
+            fi
+            if [ -n "$MODELO_S3_URI" ]; then aws s3 cp --recursive "$MODELO_S3_URI" "$DESTINO/modelos/"; fi
+            docker build -t dengue-app:latest -f "$DESTINO/infra/docker/Dockerfile" "$DESTINO"
+            docker rm -f dengue-app 2>/dev/null || true
+            docker run -d --name dengue-app --restart unless-stopped \
+              --env-file /etc/dengue-app/app.env -p "$PUERTO_PUBLICO:8000" dengue-app:latest
+            APP_LISTA=false
+            for intento in $(seq 1 60); do
+              if curl -sf "http://127.0.0.1:$PUERTO_PUBLICO/api/salud"; then echo; echo 'Aplicacion disponible.'; APP_LISTA=true; break; fi
+              sleep 5
+            done
+            if [ "$APP_LISTA" != true ]; then docker logs --tail 80 dengue-app; exit 1; fi
 
-          /usr/local/bin/dengue-desplegar
-          docker image prune -f
-          senal 0
+            # MLflow es complementario: si falla se informa, pero la aplicación sigue en servicio.
+            docker rm -f dengue-mlflow 2>/dev/null || true
+            if [ "$MLFLOW" = true ]; then
+              if docker build -t dengue-mlflow:latest -f "$DESTINO/infra/mlflow/Dockerfile" "$DESTINO"; then
+                docker run -d --name dengue-mlflow --restart unless-stopped -p "$MLFLOW_PUERTO:5000" dengue-mlflow:latest
+                MLFLOW_LISTO=false
+                for intento in $(seq 1 60); do
+                  if curl -sf "http://127.0.0.1:$MLFLOW_PUERTO/health" >/dev/null; then MLFLOW_LISTO=true; break; fi
+                  sleep 5
+                done
+                if [ "$MLFLOW_LISTO" = true ]; then echo 'MLflow disponible.'; else echo 'AVISO: MLflow no respondio.'; docker logs --tail 40 dengue-mlflow; fi
+              else
+                echo 'AVISO: no se pudo construir la imagen de MLflow; la aplicacion sigue disponible.'
+              fi
+            fi
+            exit 0
+            SCRIPT
+            chmod 755 /usr/local/bin/dengue-desplegar
+
+            /usr/local/bin/dengue-desplegar
+            docker image prune -f
+            senal 0
+          - PuertoMlflowApp: !If [ConMlflow, !Ref PuertoMlflow, '']
 
   IpElastica:
     Type: AWS::EC2::EIP
@@ -260,6 +304,12 @@ Outputs:
     Description: Desde la carpeta donde está labsuser.pem (AWS Details > Download PEM)
     Value: !Sub
       - 'ssh -i labsuser.pem ec2-user@${Ip}'
+      - Ip: !If [ConIpElastica, !Ref IpElastica, !GetAtt Instancia.PublicIp]
+  UrlMlflow:
+    Condition: ConMlflow
+    Description: MLflow con los 100 enfoques comparados y el modelo registrado
+    Value: !Sub
+      - 'http://${Ip}:${PuertoMlflow}/'
       - Ip: !If [ConIpElastica, !Ref IpElastica, !GetAtt Instancia.PublicIp]
   ComandoActualizar:
     Description: En la instancia, vuelve a descargar la rama y reconstruye la app

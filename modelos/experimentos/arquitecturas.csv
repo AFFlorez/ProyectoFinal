@@ -1,0 +1,18 @@
+MODELO,UNIDADES,DENSE_INTERMEDIA,DROPOUT,TIPO
+LSTM 32 · Dense16 · D0 · 8s,32,16,0.0,red
+LSTM 32 · sin Dense intermedia · 8s,32,0,0.0,red
+"LSTM 32 · Dense16 · D0,20 · 8s",32,16,0.2,red
+"LSTM 32 · Dense16 · D0,50 · 8s",32,16,0.5,red
+"LSTM 32→16 · Dense16 · D0,20 · 8s",32 → 16,16,0.2,red
+"LSTM 32→16→8 · Dense16 · D0,20 · 8s",32 → 16 → 8,16,0.2,red
+"LSTM 64 · Dense16 · D0,0 · 8s",64,16,0.0,red
+"LSTM 64 · Dense16 · D0,2 · 8s",64,16,0.2,red
+"LSTM 64 · Dense8 · D0,0 · 8s",64,8,0.0,red
+"LSTM 64 · Dense8 · D0,2 · 8s",64,8,0.2,red
+"LSTM 64 · sin Dense intermedia · D0,0 · 8s",64,0,0.0,red
+"LSTM 64 · sin Dense intermedia · D0,2 · 8s",64,0,0.2,red
+LSTM 32→32 · Dense16 · D0 · 8s,32 → 32,16,0.0,red
+LSTM 16 · Dense8 · D0 · 8s,16,8,0.0,red
+LSTM local (5 redes) · 8s,32,16,0.0,local
+LSTM local 16 · Dense8 (5 redes) · 8s,16,8,0.0,local
+LSTM local 8 · Dense4 (5 redes) · 8s,8,4,0.0,local
