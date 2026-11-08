@@ -6,11 +6,13 @@ Construimos y desplegamos un sistema que pronostica los **casos de dengue de la 
 
 | Recurso | Enlace |
 | --- | --- |
-| Aplicación web | `http://<IP-ELÁSTICA>/` |
-| API documentada (Swagger) | `http://<IP-ELÁSTICA>/docs` |
-| Experimentos y modelo registrado (MLflow) | `http://<IP-ELÁSTICA>:5000/` |
+| Aplicación web | [http://18.211.95.92/](http://18.211.95.92/) |
+| API documentada (Swagger) | [http://18.211.95.92/docs](http://18.211.95.92/docs) |
+| Experimentos y modelo registrado (MLflow) | [http://18.211.95.92:5000/](http://18.211.95.92:5000/) |
 | Notebook de análisis y modelado | [notebooks/ProyectoFinal.ipynb](notebooks/ProyectoFinal.ipynb) · [notebooks/README.md](notebooks/README.md) |
 | Guía de despliegue y operación | [infra/README.md](infra/README.md) |
+
+Los servicios corren en una instancia EC2 del AWS Academy Learner Lab con IP elástica, por lo que las direcciones se mantienen entre sesiones. Solo responden mientras el laboratorio está iniciado: el Learner Lab apaga la instancia al terminar cada sesión y la vuelve a encender, con los contenedores, al iniciar la siguiente.
 
 ## Equipo
 
