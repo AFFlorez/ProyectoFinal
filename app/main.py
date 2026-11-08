@@ -26,6 +26,12 @@ from app.historico import FUERA, PERIODOS, Historico
 from app.pronosticador import CLIMA, MUNICIPIOS, ErrorEntrada, Pronosticador
 
 VERSION = '1.0.0'
+EQUIPO = [
+    ('Andrés Felipe Flórez', 'af.florez@uniandes.edu.co'),
+    ('Oscar Morillo', 'o.morillo@uniandes.edu.co'),
+    ('Jared Foster', 'j.foster@uniandes.edu.co'),
+    ('Jeferson David Vargas', 'jd.vargast1@uniandes.edu.co'),
+]
 ORDEN_CONJUNTOS = [nombre for _, nombre in PERIODOS] + [FUERA]
 ESTATICOS = Path(__file__).resolve().parent / 'static'
 config = cargar_configuracion()
@@ -50,7 +56,10 @@ app = FastAPI(
     description=(
         'Pronostica los casos de dengue de la **semana t+4** en cinco municipios del Valle del Cauca '
         '(Cali, Buga, Palmira, Tuluá y Yumbo) con una red LSTM global (64 unidades + Dense 16) que usa '
-        'las últimas **20 semanas** de casos y clima. La interfaz web está en `/`.'
+        'las últimas **20 semanas** de casos y clima. La interfaz web está en `/`.\n\n'
+        'Proyecto final del curso *Proyecto: Despliegue de Soluciones*, Maestría en Inteligencia Artificial, '
+        'Universidad de los Andes.\n\n**Equipo**\n\n'
+        + '\n'.join(f'- {nombre} ({correo})' for nombre, correo in EQUIPO)
     ),
     lifespan=ciclo_de_vida,
 )

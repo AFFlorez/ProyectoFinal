@@ -130,6 +130,10 @@ table.compacta { font-size: .9rem; margin: 8px 0; }
 .ficha dt { color: var(--suave); }
 .ficha dd { margin: 0; }
 
+.equipo { margin-top: 24px; }
+.lista-equipo { list-style: none; padding: 0; margin: 12px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px 16px; }
+.lista-equipo li { display: flex; flex-direction: column; }
+.lista-equipo a { color: var(--suave); font-size: .9rem; overflow-wrap: anywhere; }
 .pie { color: var(--suave); font-size: .85rem; padding-bottom: 32px; border-top: 1px solid var(--borde); padding-top: 12px; }
 
 @media (max-width: 760px) {
