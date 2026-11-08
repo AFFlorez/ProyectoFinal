@@ -3,10 +3,13 @@
 # El registro vive dentro del contenedor: al reconstruirlo (dengue-desplegar) se vuelve a cargar.
 set -e
 mkdir -p /datos/artefactos
+# MLflow 3 solo acepta por defecto las consultas POST de una interfaz abierta en localhost.
+# En la instancia se abre por la IP pública, así que se permiten ese host y ese origen.
 mlflow server --host 0.0.0.0 --port 5000 --workers "${MLFLOW_WORKERS:-1}" \
   --backend-store-uri sqlite:////datos/mlflow.db \
   --artifacts-destination /datos/artefactos --serve-artifacts \
-  --allowed-hosts "${MLFLOW_HOSTS_PERMITIDOS:-*}" &
+  --allowed-hosts "${MLFLOW_HOSTS_PERMITIDOS:-*}" \
+  --cors-allowed-origins "${MLFLOW_ORIGENES_PERMITIDOS:-*}" &
 SERVIDOR=$!
 
 until python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=2)" 2>/dev/null; do
