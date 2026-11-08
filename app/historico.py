@@ -10,7 +10,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
-from app.calendario import semana_epidemiologica
+from app.calendario import inicio_ano_epidemiologico, semana_epidemiologica
 from app.pronosticador import CLIMA, MUNICIPIOS
 
 log = logging.getLogger(__name__)
@@ -18,14 +18,25 @@ log = logging.getLogger(__name__)
 COLUMNAS = ['COD_DANE', 'ANO', 'SEMANA_EPI', 'FECHA_INICIO', 'FECHA_FIN', 'CASOS', *CLIMA]
 
 
-def conjunto_de(ano):
-    if ano <= 2021:
-        return 'Entrenamiento'
-    if ano <= 2023:
-        return 'Validación'
-    if ano <= 2025:
-        return 'Prueba'
-    return 'Datos nuevos'
+# Primer año de cada periodo, en el orden del notebook.
+PERIODOS = [(2007, 'Entrenamiento'), (2022, 'Validación'), (2024, 'Prueba'), (2026, 'Datos nuevos')]
+# El notebook evalúa todas las historias sobre los mismos objetivos: los que admiten la más larga (24 semanas).
+HISTORIA_SOPORTE_COMUN = 24
+FUERA = 'Fuera de la evaluación'
+
+
+def conjunto_de(ano_objetivo, fin_emision, con_soporte_comun):
+    """Periodo de un pronóstico, con la misma regla del notebook (construir_secuencias).
+
+    Quedan fuera de las métricas por periodo, como en el notebook, los objetivos sin el
+    soporte común de 24 semanas y los que tienen la emisión antes del cierre del periodo
+    anterior. Así los conteos coinciden con el informe: 3.780, 505 y 510.
+    """
+    inicio, nombre = [(a, n) for a, n in PERIODOS if a <= ano_objetivo][-1]
+    cierre_anterior = pd.Timestamp(inicio_ano_epidemiologico(inicio) - timedelta(days=1))
+    if not con_soporte_comun or (inicio > PERIODOS[0][0] and fin_emision < cierre_anterior):
+        return FUERA
+    return nombre
 
 
 class Historico:
@@ -91,10 +102,12 @@ class Historico:
                     'FECHA_INICIO': ultima['FECHA_INICIO'], 'FECHA_FIN': ultima['FECHA_FIN'],
                     'FECHA_OBJETIVO': objetivo, 'ANO_OBJETIVO': ano_obj, 'SEMANA_OBJETIVO': semana_obj,
                     'CASOS_REALES': reales.get((codigo, objetivo), np.nan),
+                    'SOPORTE_COMUN': fin >= HISTORIA_SOPORTE_COMUN - 1,
                 })
         tabla = pd.DataFrame(filas)
         tabla['CASOS_PREDICHOS'] = pronosticador.predecir(np.stack(X), tabla['COD_DANE'].to_numpy())
-        tabla['CONJUNTO'] = tabla['ANO_OBJETIVO'].map(conjunto_de)
+        tabla['CONJUNTO'] = [conjunto_de(a, f, s) for a, f, s in
+                             zip(tabla['ANO_OBJETIVO'], tabla['FECHA_FIN'], tabla['SOPORTE_COMUN'])]
         return tabla
 
     # ---- Consultas ---------------------------------------------------------

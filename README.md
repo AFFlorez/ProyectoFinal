@@ -57,7 +57,7 @@ Planteamos el problema como una **regresión de series de tiempo**: con lo obser
 | Fuente | Contenido | Periodo |
 | --- | --- | --- |
 | SIVIGILA, Instituto Nacional de Salud (evento 210, dengue) | Un registro por caso notificado: departamento, municipio, semana, año y fecha de inicio de síntomas | 2007-2025 |
-| Clima semanal por municipio | Temperatura media, máxima y mínima (°C) y precipitación (mm) | 2007-2025 |
+| Clima semanal por municipio (precipitación de CHIRPS, temperaturas del reanálisis ERA5) | Temperatura media, máxima y mínima (°C) y precipitación (mm), agregadas por semana epidemiológica | 2007-2025 |
 | Catálogo de municipios del Valle del Cauca | Códigos DANE y nombres | — |
 
 **Preparación.**
@@ -69,7 +69,7 @@ Planteamos el problema como una **regresión de series de tiempo**: con lo obser
 - Contamos los casos por municipio y **semana epidemiológica** (domingo a sábado, años de 52 o 53 semanas) y los unimos con el clima de la misma semana. Las semanas sin casos quedan con cero.
 - Verificamos que no faltaran semanas, que no hubiera duplicados y que las fechas fueran consecutivas.
 
-El resultado es la serie de `data/DatosProcesados/semanal_*.csv`, con cerca de 5.000 filas. Los archivos de clima originales no se versionan por su tamaño (ver [data/README.md](data/README.md)).
+El resultado es la serie de `data/DatosProcesados/semanal_*.csv`, con 4.960 semanas (5 municipios × 992). Los casos, el clima y la serie están versionados, así que la preparación se puede repetir desde el repositorio (ver [data/README.md](data/README.md)).
 
 **Separación temporal.** Entrenamiento 2007-2021, validación 2022-2023 y prueba 2024-2025. Cada ventana usa solo información disponible hasta la semana de emisión *t*. Con la historia más larga (24 semanas) como soporte común, todas las configuraciones comparten **3.780 objetivos de entrenamiento, 505 de validación y 510 de prueba**.
 
@@ -286,7 +286,7 @@ El repositorio no contiene credenciales. La aplicación es de acceso público y 
 ```text
 ProyectoFinal/
 ├── notebooks/        Notebook principal y módulos de preparación, modelado, análisis y exportación
-├── data/             Casos SIVIGILA reducidos, serie semanal (casos + clima) y catálogo de municipios
+├── data/             Casos SIVIGILA reducidos, clima semanal, serie semanal (casos + clima) y catálogo
 ├── modelos/          Modelo elegido (pesos, escaladores, configuración, huellas) y experimentos/
 ├── app/              Servicio de pronóstico: FastAPI, pronosticador, histórico e interfaz web
 ├── infra/            CloudFormation, Docker, MLflow y scripts de despliegue

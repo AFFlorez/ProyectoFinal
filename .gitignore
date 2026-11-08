@@ -227,7 +227,9 @@ __marimo__/
 !/data/DataRaw/manifiesto_reduccion.json
 !/data/DataRaw/resumen_reduccion.csv
 /data/DataRawOriginal/
-/data/ShapeMunicipios/
+/data/ShapeMunicipios/*
+# El clima semanal de los cinco municipios sí se versiona (≈ 600 KB): permite repetir el notebook.
+!/data/ShapeMunicipios/CLIMA_DENGUE_VALLE/
 /data/DatosProcesados/*
 # La app de despliegue usa solo la serie semanal de los cinco municipios (< 1 MB).
 !/data/DatosProcesados/.gitkeep
