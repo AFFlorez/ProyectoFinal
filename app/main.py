@@ -22,10 +22,11 @@ from pydantic import BaseModel, Field
 
 from app.calendario import semana_epidemiologica
 from app.config import cargar_configuracion
-from app.historico import Historico
+from app.historico import FUERA, PERIODOS, Historico
 from app.pronosticador import CLIMA, MUNICIPIOS, ErrorEntrada, Pronosticador
 
 VERSION = '1.0.0'
+ORDEN_CONJUNTOS = [nombre for _, nombre in PERIODOS] + [FUERA]
 ESTATICOS = Path(__file__).resolve().parent / 'static'
 config = cargar_configuracion()
 logging.basicConfig(level=config.nivel_log, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
@@ -62,6 +63,9 @@ async def medir_tiempo(request: Request, siguiente):
     respuesta = await siguiente(request)
     ms = (time.perf_counter() - inicio) * 1000
     respuesta.headers['X-Tiempo-Respuesta-ms'] = f'{ms:.1f}'
+    if not request.url.path.startswith('/api'):
+        # La interfaz se revalida en cada visita: tras actualizar el despliegue nadie ve una versión vieja.
+        respuesta.headers['Cache-Control'] = 'no-cache'
     if request.url.path.startswith('/api'):
         log.info('%s %s -> %s (%.1f ms)', request.method, request.url.path, respuesta.status_code, ms)
     return respuesta
@@ -244,7 +248,8 @@ def desempeno(codigo: str, desde: Annotated[int, Query(ge=2007)] = 2022, hasta: 
         raise HTTPException(404, f'No hay semanas con casos reales entre {desde} y {hasta}.')
     return {
         'municipio': {'codigo': codigo, 'nombre': MUNICIPIOS[codigo]},
-        'metricas': {'Total': _metricas(t), **{c: _metricas(g) for c, g in t.groupby('CONJUNTO', sort=False)}},
+        'metricas': {'Total': _metricas(t), **{c: _metricas(t.loc[t['CONJUNTO'].eq(c)]) for c in ORDEN_CONJUNTOS
+                                               if t['CONJUNTO'].eq(c).any()}},
         'serie': [{'fecha_objetivo': f['FECHA_OBJETIVO'].date().isoformat(), 'ano': int(f['ANO_OBJETIVO']),
                    'semana': int(f['SEMANA_OBJETIVO']), 'predicho': _numero(f['CASOS_PREDICHOS']),
                    'real': int(f['CASOS_REALES']), 'conjunto': f['CONJUNTO']} for _, f in t.iterrows()],
