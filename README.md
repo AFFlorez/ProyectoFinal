@@ -33,7 +33,7 @@ Los servicios corren en una instancia EC2 del AWS Academy Learner Lab con IP el�
 6. [Solución desplegada](#solución-desplegada)
 7. [Discusión y limitaciones](#discusión-y-limitaciones)
 8. [Trabajo futuro](#trabajo-futuro)
-9. [Reproducibilidad](#reproducibilidad)
+9. [Despliegue, dependencias y uso](#despliegue-dependencias-y-uso)
 10. [Estructura del repositorio](#estructura-del-repositorio)
 11. [Referencias](#referencias)
 
@@ -272,16 +272,89 @@ Otras decisiones:
 - Registrar en MLflow las curvas por época de los 160 ajustes desde el propio entrenamiento.
 - Para un uso real: dominio con HTTPS, autenticación, varias instancias con balanceador y monitoreo de deriva de los datos.
 
-## Reproducibilidad
+## Despliegue, dependencias y uso
+
+### Entorno de ejecución
+
+| Componente | Entorno |
+| --- | --- |
+| Producción | AWS Academy Learner Lab, `us-east-1`: EC2 t3.medium (2 vCPU, 4 GB) con Amazon Linux 2023, Docker y una IP elástica. Todo se crea con CloudFormation. |
+| Contenedores | Imagen base `python:3.13-slim`. La app escucha en el puerto 8000 del contenedor, publicado en el 80; MLflow usa el 5000. Solo CPU, sin GPU. |
+| Local | Cualquier equipo con Docker (Windows, macOS o Linux). |
+| Análisis y entrenamiento | Python 3.13 con JupyterLab, en el entorno `.venv` descrito en [notebooks/README.md](notebooks/README.md#entorno). |
+
+### Dependencias
+
+Las dependencias están separadas por uso en [requirements/](requirements/), con versiones fijas para que el despliegue sea reproducible:
+
+| Archivo | Uso | Paquetes principales |
+| --- | --- | --- |
+| `requirements/app.txt` | Aplicación desplegada | tensorflow-cpu 2.21.0, keras 3.15.1, numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, joblib 1.6.0, fastapi 0.162.0, uvicorn 0.54.0, python-multipart 0.0.33 |
+| `requirements/mlflow.txt` | Servidor de experimentos | mlflow 3.17.2 |
+| `requirements/dev.txt` | Pruebas | lo de `app.txt` más pytest y httpx |
+| `requirements/notebook.txt` · `notebook-lock.txt` | Notebook | JupyterLab, TensorFlow, XGBoost y librerías de análisis; el *lock* fija las versiones exactas |
+
+La interfaz web usa Chart.js 4.4.1 desde cdnjs. No hay otras dependencias externas.
+
+### Pasos de despliegue
+
+En AWS (detalle, parámetros y operación en [infra/README.md](infra/README.md)):
+
+1. Iniciar el laboratorio en AWS Academy (*Start Lab*) y abrir la consola de AWS.
+2. Abrir **CloudShell** y ejecutar:
+
+   ```bash
+   git clone https://github.com/AFFlorez/ProyectoFinal.git
+   cd ProyectoFinal
+   bash infra/scripts/desplegar.sh
+   ```
+
+3. La pila tarda entre 8 y 15 minutos la primera vez. Al terminar, el script imprime `UrlAplicacion`, `UrlDocumentacionApi` y `UrlMlflow`.
+4. Para publicar cambios de `main`, conectarse a la instancia (*EC2 → Connect → EC2 Instance Connect*) y ejecutar `sudo dengue-desplegar`. Para borrar todo: `bash infra/scripts/eliminar.sh`.
+
+En un equipo local, con Docker:
+
+```bash
+docker compose -f infra/docker/docker-compose.yml up -d --build
+# Aplicación: http://localhost:8000 · API: http://localhost:8000/docs · MLflow: http://localhost:5000
+```
+
+Las pruebas automáticas se ejecutan dentro de la imagen de la app (comando en [infra/README.md](infra/README.md#ejecución-local)).
+
+### Credenciales
+
+No aplica. La aplicación, la API y MLflow son de acceso público y no requieren usuario ni contraseña. El repositorio no contiene credenciales: el despliegue usa el rol `LabInstanceProfile` y la clave `vockey` que ya trae el Learner Lab.
+
+### Ejemplos de uso
+
+**Desde la interfaz web:**
+
+1. En **Pronóstico**, elegir *Cali*, año *2024* y semana *10*, y pulsar **Pronosticar**. La app muestra los casos esperados en la semana 14, su nivel de alerta, los casos reales y el error, junto con las 20 semanas de casos y clima que usó el modelo.
+2. En **Desempeño histórico**, elegir un municipio y un rango de años para ver el pronóstico frente a los casos reales, con MAE, RMSE y sesgo por periodo.
+3. En **Usar mis datos**, descargar la plantilla CSV, reemplazar los valores por 20 semanas propias y subir el archivo para obtener el pronóstico.
+
+**Desde la API** (también se puede probar desde `/docs`):
+
+```bash
+# Pronóstico t+4 de Cali emitido en la semana 10 de 2024
+curl "http://18.211.95.92/api/pronostico?codigo=76001&ano=2024&semana=10"
+
+# Los cinco municipios para la misma semana
+curl "http://18.211.95.92/api/resumen?ano=2024&semana=10"
+
+# Pronóstico con datos propios a partir de la plantilla
+curl -o plantilla.csv http://18.211.95.92/api/plantilla.csv
+curl -F "archivo=@plantilla.csv" http://18.211.95.92/api/pronostico/archivo
+```
+
+### Reproducibilidad
 
 | Qué | Cómo |
 | --- | --- |
-| Análisis y entrenamiento | Entorno en `requirements/notebook-lock.txt` y notebook en `notebooks/` (ver [notebooks/README.md](notebooks/README.md#entorno)) |
-| Despliegue en AWS | `bash infra/scripts/desplegar.sh` desde la terminal del Learner Lab (ver [infra/README.md](infra/README.md)) |
-| Ejecución local | `docker compose -f infra/docker/docker-compose.yml up -d --build` |
-| Pruebas | `pytest` dentro de la imagen de la app (ver [infra/README.md](infra/README.md#ejecución-local)) |
-
-El repositorio no contiene credenciales. La aplicación es de acceso público y no requiere usuario ni contraseña.
+| Análisis y entrenamiento | Notebook en `notebooks/` con el entorno de `requirements/notebook-lock.txt` |
+| Datos | Casos reducidos, clima y serie semanal versionados en `data/` (ver [data/README.md](data/README.md)) |
+| Modelo | Paquete exportado por el notebook en `modelos/`, con huellas SHA-256 que la app verifica al cargar |
+| Infraestructura | Plantilla de CloudFormation y scripts en `infra/` |
 
 ## Estructura del repositorio
 
