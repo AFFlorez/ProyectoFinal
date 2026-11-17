@@ -20,6 +20,7 @@ RUN useradd --create-home --uid 10001 dengue
 COPY --chown=dengue app/ app/
 COPY --chown=dengue modelos/ modelos/
 COPY --chown=dengue data/DatosProcesados/ data/DatosProcesados/
+COPY --chown=dengue data/clima_google_earth_engine.js data/
 USER dengue
 
 EXPOSE 8000

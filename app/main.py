@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app.calendario import semana_epidemiologica
-from app.config import cargar_configuracion
+from app.config import RAIZ, cargar_configuracion
 from app.historico import FUERA, PERIODOS, Historico
 from app.pronosticador import CLIMA, MUNICIPIOS, ErrorEntrada, Pronosticador
 
@@ -34,6 +34,8 @@ EQUIPO = [
 ]
 ORDEN_CONJUNTOS = [nombre for _, nombre in PERIODOS] + [FUERA]
 ESTATICOS = Path(__file__).resolve().parent / 'static'
+# Código de Google Earth Engine con el que se obtuvo el clima semanal (CHIRPS y ERA5-Land).
+CODIGO_CLIMA = RAIZ / 'data' / 'clima_google_earth_engine.js'
 config = cargar_configuracion()
 logging.basicConfig(level=config.nivel_log, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
 log = logging.getLogger('app')
@@ -158,6 +160,14 @@ def inicio():
     return FileResponse(ESTATICOS / 'index.html')
 
 
+@app.get('/descargas/clima_google_earth_engine.js', tags=['Servicio'],
+         summary='Código de Google Earth Engine usado para obtener la precipitación y la temperatura')
+def codigo_clima():
+    if not CODIGO_CLIMA.is_file():
+        raise HTTPException(404, 'El código de Google Earth Engine no está incluido en esta instalación.')
+    return FileResponse(CODIGO_CLIMA, media_type='text/javascript; charset=utf-8', filename=CODIGO_CLIMA.name)
+
+
 # ---- API --------------------------------------------------------------------
 @app.get('/api/salud', tags=['Servicio'], summary='Estado del servicio')
 def salud():
@@ -207,8 +217,12 @@ def municipios():
                 'umbrales_alerta': {k: _numero(v, 1) for k, v in pron.umbrales(codigo, config.percentil_moderado, config.percentil_alto).items()}}
         if historico.disponible:
             primera, ultima = historico.rango(codigo)
-            item['primera_emision'] = {'ano': int(primera['ANO']), 'semana': int(primera['SEMANA_EPI'])}
-            item['ultima_emision'] = {'ano': int(ultima['ANO']), 'semana': int(ultima['SEMANA_EPI'])}
+            item['primera_emision'] = _semana(primera['FECHA_INICIO'])
+            item['ultima_emision'] = _semana(ultima['FECHA_INICIO'])
+            con_real = historico.predicciones.loc[historico.predicciones['COD_DANE'].eq(codigo)
+                                                  & historico.predicciones['CASOS_REALES'].notna()]
+            if not con_real.empty:
+                item['ultima_emision_con_real'] = _semana(con_real.iloc[-1]['FECHA_INICIO'])
         salida.append(item)
     return {'historico_disponible': historico.disponible, 'aviso': historico.mensaje, 'municipios': salida}
 

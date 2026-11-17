@@ -35,11 +35,18 @@
 
   <!-- 1. Pronóstico -->
   <section id="pronostico" class="seccion activa" role="tabpanel">
+    <div class="alcance" role="note">
+      <p><strong>Esta pestaña trabaja solo con los datos históricos cargados en la aplicación</strong>: casos del SIVIGILA,
+        precipitación de CHIRPS y temperatura de ERA5-Land, <span id="p-cobertura">de 2007 a 2025</span>.
+        No recibe datos nuevos. Para pronosticar con semanas más recientes, usa la pestaña
+        <a href="#datos" data-ir="datos">3. Usar mis datos</a>.</p>
+    </div>
     <details class="ayuda" open>
       <summary>¿Cómo se usa?</summary>
       <ol>
         <li>Elige el <strong>municipio</strong>.</li>
-        <li>Elige la <strong>semana de emisión</strong>: la última semana epidemiológica con datos observados (año y número de semana, de domingo a sábado).</li>
+        <li>Elige <strong>hasta qué semana usar datos</strong> (año y semana epidemiológica, de domingo a sábado). El modelo toma las
+          20 semanas que terminan en esa semana, como si fuera la última semana observada, y no usa nada posterior.</li>
         <li>Pulsa <strong>Pronosticar</strong>. Verás los casos estimados para la semana que ocurre 4 semanas después, su nivel de alerta y, si ya ocurrió, los casos reales.</li>
       </ol>
     </details>
@@ -48,10 +55,10 @@
       <label>Municipio
         <select id="p-municipio" name="codigo"></select>
       </label>
-      <label>Año de emisión
+      <label>Usar datos hasta el año
         <input id="p-ano" type="number" min="2007" max="2100" required>
       </label>
-      <label>Semana epidemiológica
+      <label>Y la semana epidemiológica
         <input id="p-semana" type="number" min="1" max="53" required>
       </label>
       <div class="botones">
@@ -87,8 +94,8 @@
           <div class="lienzo"><canvas id="g-casos" aria-label="Gráfico de casos semanales y pronóstico"></canvas></div>
         </figure>
         <figure>
-          <figcaption>Clima de las 20 semanas de entrada</figcaption>
-          <div class="lienzo"><canvas id="g-clima" aria-label="Gráfico de temperatura y precipitación"></canvas></div>
+          <figcaption>Clima de las 20 semanas de entrada: precipitación (CHIRPS) y temperatura media, máxima y mínima (ERA5-Land)</figcaption>
+          <div class="lienzo"><canvas id="g-clima" aria-label="Gráfico de precipitación y temperaturas media, máxima y mínima"></canvas></div>
         </figure>
       </div>
 
@@ -152,6 +159,9 @@
             </tbody>
           </table>
         </div>
+        <p class="nota">Para obtener el clima de semanas nuevas con las mismas fuentes del modelo (CHIRPS y ERA5-Land) puedes usar el
+          <a href="/descargas/clima_google_earth_engine.js" download>código de Google Earth Engine del proyecto</a>,
+          cambiando <code>anioInicial</code> y <code>anioFinal</code>.</p>
       </li>
       <li>
         <form id="form-archivo" class="formulario en-linea">
@@ -170,6 +180,13 @@
       <figure>
         <figcaption>Casos de entrada y pronóstico por municipio</figcaption>
         <div class="lienzo"><canvas id="g-archivo" aria-label="Gráfico de pronósticos con datos propios"></canvas></div>
+      </figure>
+      <figure>
+        <div class="encabezado-figura">
+          <figcaption>Clima ingresado en las 20 semanas de entrada</figcaption>
+          <label>Municipio <select id="a-municipio"></select></label>
+        </div>
+        <div class="lienzo"><canvas id="g-archivo-clima" aria-label="Gráfico del clima ingresado para el municipio elegido"></canvas></div>
       </figure>
     </div>
   </section>
@@ -208,6 +225,22 @@
     <div class="tabla-desplazable">
       <table id="t-modelo"><thead><tr><th>Conjunto</th><th class="num">Objetivos</th><th class="num">MAE</th><th class="num">RMSE</th></tr></thead><tbody></tbody></table>
     </div>
+    <article class="tarjeta texto fuentes">
+      <h2>Fuentes de datos</h2>
+      <ul>
+        <li><strong>Casos:</strong> notificaciones de dengue (evento 210) del
+          <a href="https://portalsivigila.ins.gov.co/" target="_blank" rel="noopener">SIVIGILA, Instituto Nacional de Salud</a>, 2007-2025, agrupadas por semana epidemiológica de inicio de síntomas.</li>
+        <li><strong>Precipitación:</strong>
+          <a href="https://developers.google.com/earth-engine/datasets/catalog/UCSB-CHG_CHIRPS_DAILY?hl=es-419" target="_blank" rel="noopener">CHIRPS Daily v2.0</a>
+          (Climate Hazards Center, UCSB; resolución de 0,05°). Lluvia diaria sumada por semana y promediada sobre el área del municipio.</li>
+        <li><strong>Temperatura:</strong>
+          <a href="https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_DAILY_AGGR?hl=es-419" target="_blank" rel="noopener">ERA5-Land Daily Aggregated</a>
+          (ECMWF, reanálisis; resolución de 0,1°). Por semana: promedio de la temperatura media diaria, máximo de las máximas y mínimo de las mínimas, en °C, promediados sobre el área del municipio.</li>
+        <li><strong>Límites municipales:</strong> Marco Geoestadístico Nacional 2018 del DANE.</li>
+      </ul>
+      <p>El clima se calculó en Google Earth Engine para las semanas epidemiológicas de domingo a sábado.</p>
+      <p><a class="boton secundario" href="/descargas/clima_google_earth_engine.js" download>Descargar el código de Google Earth Engine</a></p>
+    </article>
     <article class="tarjeta texto equipo">
       <h2>Equipo del proyecto</h2>
       <p>Proyecto final del curso <em>Proyecto: Despliegue de Soluciones</em>, Maestría en Inteligencia Artificial, Universidad de los Andes.</p>
@@ -223,7 +256,7 @@
 
 <footer class="pie contenedor">
   <p>Equipo: Andrés Felipe Flórez, Oscar Morillo, Jared Foster y Jeferson David Vargas · Maestría en Inteligencia Artificial, Universidad de los Andes.</p>
-  <p>Datos: SIVIGILA (INS Colombia) y clima semanal por municipio. Modelo y código en el repositorio del proyecto.
+  <p>Datos: casos del SIVIGILA (INS Colombia); precipitación CHIRPS y temperatura ERA5-Land, procesadas en Google Earth Engine. Modelo y código en el repositorio del proyecto.
     <span id="pie-estado"></span></p>
 </footer>
 </body>
