@@ -1,7 +1,10 @@
 'use strict';
 
 const graficos = {};
-const COLORES = { casos: '#94a3b8', posteriores: '#cbd5e1', pronostico: '#4f46e5', real: '#0f766e', lluvia: '#38bdf8', temp: '#f97316' };
+const COLORES = {
+  casos: '#94a3b8', posteriores: '#cbd5e1', pronostico: '#4f46e5', real: '#0f766e',
+  lluvia: 'rgba(56, 189, 248, 0.55)', temp: '#f97316', tempMax: '#dc2626', tempMin: '#7c3aed',
+};
 const $ = (id) => document.getElementById(id);
 const formato = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 });
 const fechaCorta = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -40,11 +43,48 @@ function dibujar(id, configuracion) {
   graficos[id] = new Chart($(id), configuracion);
 }
 
+// Precipitación en barras y las tres temperaturas en líneas, dibujadas por encima de las barras.
+function graficarClima(id, historia) {
+  const linea = (etiqueta, campo, color, extra = {}) => ({
+    type: 'line', label: etiqueta, data: historia.map((s) => s[campo]), borderColor: color, backgroundColor: color,
+    yAxisID: 'temp', tension: 0.3, pointRadius: 2, borderWidth: 2, order: 0, ...extra,
+  });
+  dibujar(id, {
+    data: {
+      labels: historia.map(semanaTexto),
+      datasets: [
+        linea('Temp. máxima (°C)', 'temp_max_c', COLORES.tempMax, { borderDash: [5, 3] }),
+        linea('Temp. media (°C)', 'temp_media_c', COLORES.temp, { borderWidth: 3 }),
+        linea('Temp. mínima (°C)', 'temp_min_c', COLORES.tempMin, { borderDash: [5, 3] }),
+        { type: 'bar', label: 'Precipitación (mm)', data: historia.map((s) => s.precipitacion_mm), backgroundColor: COLORES.lluvia, yAxisID: 'lluvia', order: 1 },
+      ],
+    },
+    options: {
+      maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { labels: { boxWidth: 14 } } },
+      scales: {
+        lluvia: { position: 'left', beginAtZero: true, title: { display: true, text: 'Precipitación (mm)' } },
+        temp: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Temperatura (°C)' } },
+      },
+    },
+  });
+}
+
 // ---- Pestañas -------------------------------------------------------------
-document.querySelectorAll('.pestana').forEach((boton) => boton.addEventListener('click', () => {
-  document.querySelectorAll('.pestana').forEach((b) => { b.classList.toggle('activa', b === boton); b.setAttribute('aria-selected', b === boton); });
-  document.querySelectorAll('.seccion').forEach((s) => s.classList.toggle('activa', s.id === boton.dataset.seccion));
+function abrirPestana(seccion) {
+  document.querySelectorAll('.pestana').forEach((b) => {
+    const activa = b.dataset.seccion === seccion;
+    b.classList.toggle('activa', activa);
+    b.setAttribute('aria-selected', activa);
+  });
+  document.querySelectorAll('.seccion').forEach((s) => s.classList.toggle('activa', s.id === seccion));
   limpiarAviso();
+}
+document.querySelectorAll('.pestana').forEach((boton) => boton.addEventListener('click', () => abrirPestana(boton.dataset.seccion)));
+document.querySelectorAll('[data-ir]').forEach((enlace) => enlace.addEventListener('click', (e) => {
+  e.preventDefault();
+  abrirPestana(enlace.dataset.ir);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }));
 
 // ---- 1. Pronóstico --------------------------------------------------------
@@ -52,9 +92,16 @@ let municipios = [];
 
 function actualizarRango() {
   const m = municipios.find((x) => x.codigo === $('p-municipio').value);
-  if (m?.primera_emision) {
-    $('p-rango').textContent = `Semanas de emisión disponibles para ${m.nombre}: de ${semanaTexto(m.primera_emision)} a ${semanaTexto(m.ultima_emision)}.`;
+  if (!m?.primera_emision) return;
+  const ultima = m.ultima_emision;
+  let texto = `Datos de ${m.nombre}: puedes usar datos hasta cualquier semana entre ${semanaTexto(m.primera_emision)} `
+    + `(la primera con 20 semanas previas) y ${semanaTexto(ultima)} (${rangoTexto(ultima)}), la última semana cargada.`;
+  if (m.ultima_emision_con_real) {
+    texto += ` Para comparar el pronóstico con casos reales, usa datos hasta ${semanaTexto(m.ultima_emision_con_real)} como máximo; `
+      + 'después de esa semana el pronóstico cae en semanas que aún no están en los datos.';
   }
+  $('p-rango').textContent = texto;
+  $('p-cobertura').textContent = `desde 2007 hasta la semana ${semanaTexto(ultima)}, que termina el ${fechaCorta(ultima.fecha_fin)}`;
 }
 
 async function pronosticar(ano, semana) {
@@ -105,19 +152,7 @@ function graficarPronostico(r) {
     },
     options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Casos' } } } },
   });
-  dibujar('g-clima', {
-    data: {
-      labels: r.historia.map(semanaTexto),
-      datasets: [
-        { type: 'bar', label: 'Precipitación (mm)', data: r.historia.map((s) => s.precipitacion_mm), backgroundColor: COLORES.lluvia, yAxisID: 'lluvia' },
-        { type: 'line', label: 'Temperatura media (°C)', data: r.historia.map((s) => s.temp_media_c), borderColor: COLORES.temp, backgroundColor: COLORES.temp, yAxisID: 'temp', tension: 0.3 },
-      ],
-    },
-    options: {
-      maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-      scales: { lluvia: { position: 'left', beginAtZero: true, title: { display: true, text: 'mm' } }, temp: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '°C' } } },
-    },
-  });
+  graficarClima('g-clima', r.historia);
 }
 
 async function cargarResumen(ano, semana) {
@@ -160,6 +195,13 @@ $('form-desempeno').addEventListener('submit', (e) => {
 });
 
 // ---- 3. Datos propios -----------------------------------------------------
+let resultadosArchivo = [];
+function graficarClimaArchivo() {
+  const r = resultadosArchivo.find((x) => x.municipio.codigo === $('a-municipio').value) ?? resultadosArchivo[0];
+  if (r) graficarClima('g-archivo-clima', r.historia);
+}
+$('a-municipio').addEventListener('change', graficarClimaArchivo);
+
 $('form-archivo').addEventListener('submit', (e) => {
   e.preventDefault();
   conBoton(e.submitter, async () => {
@@ -184,7 +226,10 @@ $('form-archivo').addEventListener('submit', (e) => {
       options: { maintainAspectRatio: false, interaction: { mode: 'nearest', intersect: false }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Casos' } } },
         plugins: { legend: { labels: { filter: (item) => !item.text.includes('(pronóstico)') } } } },
     });
+    resultadosArchivo = resultados;
+    $('a-municipio').innerHTML = resultados.map((r) => `<option value="${r.municipio.codigo}">${r.municipio.nombre}</option>`).join('');
     $('a-resultado').classList.remove('oculto');
+    graficarClimaArchivo();
   });
 });
 

@@ -59,8 +59,12 @@ Planteamos el problema como una **regresión de series de tiempo**: con lo obser
 | Fuente | Contenido | Periodo |
 | --- | --- | --- |
 | SIVIGILA, Instituto Nacional de Salud (evento 210, dengue) | Un registro por caso notificado: departamento, municipio, semana, año y fecha de inicio de síntomas | 2007-2025 |
-| Clima semanal por municipio (precipitación de CHIRPS, temperaturas del reanálisis ERA5) | Temperatura media, máxima y mínima (°C) y precipitación (mm), agregadas por semana epidemiológica | 2007-2025 |
+| Precipitación: [CHIRPS Daily v2.0](https://developers.google.com/earth-engine/datasets/catalog/UCSB-CHG_CHIRPS_DAILY?hl=es-419) (Climate Hazards Center, UCSB), en Google Earth Engine | Lluvia diaria a 0,05°, sumada por semana epidemiológica y promediada sobre el área de cada municipio (mm) | 2007-2025 |
+| Temperatura: [ERA5-Land Daily Aggregated](https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_DAILY_AGGR?hl=es-419) (ECMWF), en Google Earth Engine | Por semana: promedio de la temperatura media diaria, máximo de las máximas y mínimo de las mínimas (°C), promediados sobre cada municipio | 2007-2025 |
+| Límites municipales: Marco Geoestadístico Nacional 2018 (DANE) | Polígonos de los cinco municipios usados para agregar el clima | — |
 | Catálogo de municipios del Valle del Cauca | Códigos DANE y nombres | — |
+
+El clima se obtuvo con el código de Google Earth Engine [data/clima_google_earth_engine.js](data/clima_google_earth_engine.js), que exporta un CSV por año a Google Drive con semanas epidemiológicas de domingo a sábado. También se puede descargar desde la aplicación (pestaña *Acerca del modelo*) o en `/descargas/clima_google_earth_engine.js`. Para usarlo hay que cargar el *shapefile* de municipios del MGN 2018 del DANE como *asset* propio y ajustar su ruta en el código.
 
 **Preparación.**
 
@@ -329,9 +333,9 @@ No aplica. La aplicación, la API y MLflow son de acceso público y no requieren
 
 **Desde la interfaz web:**
 
-1. En **Pronóstico**, elegir *Cali*, año *2024* y semana *10*, y pulsar **Pronosticar**. La app muestra los casos esperados en la semana 14, su nivel de alerta, los casos reales y el error, junto con las 20 semanas de casos y clima que usó el modelo.
+1. En **Pronóstico**, que trabaja solo con los datos cargados en la aplicación (2007 a 2025-S53), elegir *Cali* y usar datos hasta el año *2024*, semana *10*; pulsar **Pronosticar**. La app muestra los casos esperados en la semana 14, su nivel de alerta, los casos reales y el error, junto con las 20 semanas de casos y de clima (precipitación y temperatura media, máxima y mínima) que usó el modelo.
 2. En **Desempeño histórico**, elegir un municipio y un rango de años para ver el pronóstico frente a los casos reales, con MAE, RMSE y sesgo por periodo.
-3. En **Usar mis datos**, descargar la plantilla CSV, reemplazar los valores por 20 semanas propias y subir el archivo para obtener el pronóstico.
+3. En **Usar mis datos**, descargar la plantilla CSV, reemplazar los valores por 20 semanas propias y subir el archivo. La app muestra el pronóstico de cada municipio, los casos ingresados y el clima ingresado por municipio.
 
 **Desde la API** (también se puede probar desde `/docs`):
 
