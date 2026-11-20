@@ -307,3 +307,5 @@ Desktop.ini
 !/modelos/experimentos/figuras/*.png
 # Diagrama de arquitectura que muestran el README y el informe de despliegue.
 !/docs/arquitectura/*.png
+# Informes entregables en Word, para que el equipo pueda editarlos.
+!/docs/entregables/*.docx
