@@ -13,8 +13,8 @@ from app.config import RAIZ
 from app.historico import Historico
 from app.pronosticador import Pronosticador
 
-DATOS = RAIZ / 'data' / 'DatosProcesados'
-pytestmark = pytest.mark.skipif(not list(DATOS.glob('semanal_*.csv')), reason='Sin serie semanal en data/DatosProcesados')
+DATOS = RAIZ / 'datos' / 'DatosProcesados'
+pytestmark = pytest.mark.skipif(not list(DATOS.glob('semanal_*.csv')), reason='Sin serie semanal en datos/DatosProcesados')
 
 
 @pytest.fixture(scope='module')

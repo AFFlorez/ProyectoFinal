@@ -64,7 +64,7 @@ Planteamos el problema como una **regresión de series de tiempo**: con lo obser
 | Límites municipales: Marco Geoestadístico Nacional 2018 (DANE) | Polígonos de los cinco municipios usados para agregar el clima | — |
 | Catálogo de municipios del Valle del Cauca | Códigos DANE y nombres | — |
 
-El clima se obtuvo con el código de Google Earth Engine [data/clima_google_earth_engine.js](data/clima_google_earth_engine.js), que exporta un CSV por año a Google Drive con semanas epidemiológicas de domingo a sábado. También se puede descargar desde la aplicación (pestaña *Acerca del modelo*) o en `/descargas/clima_google_earth_engine.js`. Para usarlo hay que cargar el *shapefile* de municipios del MGN 2018 del DANE como *asset* propio y ajustar su ruta en el código.
+El clima se obtuvo con el código de Google Earth Engine [datos/clima_google_earth_engine.js](datos/clima_google_earth_engine.js), que exporta un CSV por año a Google Drive con semanas epidemiológicas de domingo a sábado. También se puede descargar desde la aplicación (pestaña *Acerca del modelo*) o en `/descargas/clima_google_earth_engine.js`. Para usarlo hay que cargar el *shapefile* de municipios del MGN 2018 del DANE como *asset* propio y ajustar su ruta en el código.
 
 **Preparación.**
 
@@ -75,7 +75,7 @@ El clima se obtuvo con el código de Google Earth Engine [data/clima_google_eart
 - Contamos los casos por municipio y **semana epidemiológica** (domingo a sábado, años de 52 o 53 semanas) y los unimos con el clima de la misma semana. Las semanas sin casos quedan con cero.
 - Verificamos que no faltaran semanas, que no hubiera duplicados y que las fechas fueran consecutivas.
 
-El resultado es la serie de `data/DatosProcesados/semanal_*.csv`, con 4.960 semanas (5 municipios × 992). Los casos, el clima y la serie están versionados, así que la preparación se puede repetir desde el repositorio (ver [data/README.md](data/README.md)).
+El resultado es la serie de `datos/DatosProcesados/semanal_*.csv`, con 4.960 semanas (5 municipios × 992). Los casos, el clima y la serie están versionados, así que la preparación se puede repetir desde el repositorio (ver [datos/README.md](datos/README.md)).
 
 **Separación temporal.** Entrenamiento 2007-2021, validación 2022-2023 y prueba 2024-2025. Cada ventana usa solo información disponible hasta la semana de emisión *t*. Con la historia más larga (24 semanas) como soporte común, todas las configuraciones comparten **3.780 objetivos de entrenamiento, 505 de validación y 510 de prueba**.
 
@@ -223,7 +223,7 @@ Registrar resultados ya calculados, en vez de reentrenar dentro del servidor, ma
 | --- | --- | --- |
 | `ALERTA_PERCENTIL_MODERADO` / `ALERTA_PERCENTIL_ALTO` | 75 / 90 | Umbrales del nivel de alerta |
 | `MODELO_DIR`, `MODELO_URL`, `VERIFICAR_SHA256` | `modelos`, vacío, `true` | Origen e integridad del modelo |
-| `DATOS_DIR` | `data/DatosProcesados` | Serie histórica |
+| `DATOS_DIR` | `datos/DatosProcesados` | Serie histórica |
 | `WORKERS`, `MAX_SEMANAS_ENTRADA` | 1 (2 en AWS), 2000 | Concurrencia y límite de entrada |
 | `APP_TITULO`, `LOG_LEVEL`, `CORS_ORIGENES`, `MLFLOW_PUERTO` | — | Presentación, registros, acceso y enlace a MLflow |
 
@@ -358,7 +358,7 @@ curl -F "archivo=@plantilla.csv" http://18.211.95.92/api/pronostico/archivo
 | Qué | Cómo |
 | --- | --- |
 | Análisis y entrenamiento | Notebook en `notebooks/` con el entorno de `requirements/notebook-lock.txt` |
-| Datos | Casos reducidos, clima y serie semanal versionados en `data/` (ver [data/README.md](data/README.md)) |
+| Datos | Casos reducidos, clima y serie semanal versionados en `datos/` (ver [datos/README.md](datos/README.md)) |
 | Modelo | Paquete exportado por el notebook en `modelos/`, con huellas SHA-256 que la app verifica al cargar |
 | Infraestructura | Plantilla de CloudFormation y scripts en `infra/` |
 
@@ -367,7 +367,7 @@ curl -F "archivo=@plantilla.csv" http://18.211.95.92/api/pronostico/archivo
 ```text
 ProyectoFinal/
 ├── notebooks/        Notebook principal y módulos de preparación, modelado, análisis y exportación
-├── data/             Casos SIVIGILA reducidos, clima semanal, serie semanal (casos + clima) y catálogo
+├── datos/            Casos SIVIGILA reducidos, clima semanal, serie semanal (casos + clima) y catálogo
 ├── modelos/          Modelo elegido (pesos, escaladores, configuración, huellas) y experimentos/
 ├── app/              Servicio de pronóstico: FastAPI, pronosticador, histórico e interfaz web
 ├── infra/            CloudFormation, Docker, MLflow y scripts de despliegue

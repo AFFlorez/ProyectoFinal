@@ -13,7 +13,7 @@ Esta guía explica cómo se reproduce y opera el despliegue descrito en el [READ
 
 - Sesión del AWS Academy Learner Lab iniciada (*Start Lab*, indicador en verde), región `us-east-1`.
 - Repositorio público, o un token de solo lectura en el parámetro `TokenGitHub`.
-- La rama que se despliega (`Rama`, por defecto `main`) debe contener `data/DatosProcesados/semanal_*.csv`. Sin esos archivos, la app solo ofrece el modo de datos propios.
+- La rama que se despliega (`Rama`, por defecto `main`) debe contener `datos/DatosProcesados/semanal_*.csv`. Sin esos archivos, la app solo ofrece el modo de datos propios.
 
 ## Desplegar
 

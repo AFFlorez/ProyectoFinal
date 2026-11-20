@@ -31,6 +31,16 @@ def _ruta(nombre, defecto):
     return ruta if ruta.is_absolute() else RAIZ / ruta
 
 
+def _ruta_datos():
+    ruta = _ruta('DATOS_DIR', 'datos/DatosProcesados')
+    # La carpeta data/ pasó a llamarse datos/. Las instancias creadas antes conservan
+    # DATOS_DIR=data/DatosProcesados en /etc/dengue-app/app.env; se redirige a la carpeta nueva.
+    anterior = RAIZ / 'data'
+    if not ruta.exists() and ruta.is_relative_to(anterior):
+        return RAIZ / 'datos' / ruta.relative_to(anterior)
+    return ruta
+
+
 @dataclass(frozen=True)
 class Configuracion:
     titulo: str
@@ -50,7 +60,7 @@ def cargar_configuracion():
     config = Configuracion(
         titulo=_texto('APP_TITULO', 'Pronóstico semanal de dengue · Valle del Cauca'),
         carpeta_modelo=_ruta('MODELO_DIR', 'modelos'),
-        carpeta_datos=_ruta('DATOS_DIR', 'data/DatosProcesados'),
+        carpeta_datos=_ruta_datos(),
         url_modelo=_texto('MODELO_URL', ''),
         verificar_integridad=_booleano('VERIFICAR_SHA256', True),
         percentil_moderado=_numero('ALERTA_PERCENTIL_MODERADO', 75, float, 1, 99),

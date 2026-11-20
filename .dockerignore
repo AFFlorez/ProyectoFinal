@@ -1,13 +1,13 @@
 # Contexto de construcción = raíz del repositorio (ver infra/docker/Dockerfile).
-# La imagen solo necesita app/, modelos/, data/DatosProcesados/, el código de clima y requirements/app.txt.
+# La imagen solo necesita app/, modelos/, datos/DatosProcesados/, el código de clima y requirements/app.txt.
 .git
 .venv
 .jupyter-local
 **/__pycache__
 .pytest_cache
-data/*
-!data/DatosProcesados
-!data/clima_google_earth_engine.js
+datos/*
+!datos/DatosProcesados
+!datos/clima_google_earth_engine.js
 ResultadosModelos
 notebooks
 docs

@@ -1,4 +1,4 @@
-"""Serie semanal 2007-2025 de los cinco municipios (data/DatosProcesados/semanal_*.csv, punto 11 del notebook).
+"""Serie semanal 2007-2025 de los cinco municipios (datos/DatosProcesados/semanal_*.csv, punto 11 del notebook).
 
 Al iniciar se calculan, en un solo lote, los pronósticos de todas las semanas de
 emisión posibles. Las consultas posteriores solo filtran esa tabla.

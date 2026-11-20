@@ -19,8 +19,8 @@ RUN pip install --root-user-action=ignore -r requirements/app.txt
 RUN useradd --create-home --uid 10001 dengue
 COPY --chown=dengue app/ app/
 COPY --chown=dengue modelos/ modelos/
-COPY --chown=dengue data/DatosProcesados/ data/DatosProcesados/
-COPY --chown=dengue data/clima_google_earth_engine.js data/
+COPY --chown=dengue datos/DatosProcesados/ datos/DatosProcesados/
+COPY --chown=dengue datos/clima_google_earth_engine.js datos/
 USER dengue
 
 EXPOSE 8000
