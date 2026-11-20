@@ -309,3 +309,5 @@ Desktop.ini
 !/docs/arquitectura/*.png
 # Informes entregables en Word, para que el equipo pueda editarlos.
 !/docs/entregables/*.docx
+# Plantillas del curso (IEEE y LaTeX): se conservan localmente.
+/docs/entregables/Formatos/
