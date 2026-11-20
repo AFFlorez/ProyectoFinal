@@ -150,7 +150,9 @@ La comparación completa (los 100 enfoques con sus parámetros, métricas, curva
 
 ### Arquitectura
 
-![Arquitectura de despliegue](docs/arquitectura.svg)
+![Arquitectura de despliegue en AWS](docs/arquitectura/arquitectura.png)
+
+El diagrama se puede editar en [draw.io](https://app.diagrams.net/) abriendo [docs/arquitectura/arquitectura.drawio](docs/arquitectura/arquitectura.drawio); usa los íconos oficiales de AWS.
 
 Una plantilla de **CloudFormation** crea un grupo de seguridad, una instancia **EC2** (Amazon Linux 2023, t3.medium) y una **IP elástica**. Al arrancar, la instancia instala Docker, clona este repositorio y construye dos contenedores:
 
