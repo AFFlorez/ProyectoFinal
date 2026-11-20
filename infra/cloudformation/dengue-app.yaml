@@ -216,7 +216,7 @@ Resources:
             WORKERS=${Workers}
             LOG_LEVEL=${NivelLog}
             MODELO_DIR=modelos
-            DATOS_DIR=data/DatosProcesados
+            DATOS_DIR=datos/DatosProcesados
             VERIFICAR_SHA256=true
             MLFLOW_PUERTO=${PuertoMlflowApp}
             CONF

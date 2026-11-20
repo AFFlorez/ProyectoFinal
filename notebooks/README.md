@@ -47,12 +47,12 @@ Para retomar desde los conjuntos limpios, ejecuta **1, 2 y 9.2** y continúa des
 
 ## Archivos del proyecto
 
-El notebook y sus módulos están en `notebooks/`, pero trabajan desde la raíz del repositorio: la primera celda cambia el directorio de trabajo a la raíz. Los datos están en `data/` (ver [data/README.md](../data/README.md)). Los scripts de esta carpeta se ejecutan desde la raíz, por ejemplo `.venv\Scripts\python.exe notebooks\analisis_validacion.py`.
+El notebook y sus módulos están en `notebooks/`, pero trabajan desde la raíz del repositorio: la primera celda cambia el directorio de trabajo a la raíz. Los datos están en `datos/` (ver [datos/README.md](../datos/README.md)). Los scripts de esta carpeta se ejecutan desde la raíz, por ejemplo `.venv\Scripts\python.exe notebooks\analisis_validacion.py`.
 
-- `data/DataRaw/`: CSV anuales reducidos al departamento 76 y a las cinco columnas utilizadas: COD_DPTO_O, COD_MUN_O, SEMANA, ANO e INI_SIN.
-- `data/DataRawOriginal/`: copia de los archivos completos, conservada localmente y excluida de Git.
-- `data/ShapeMunicipios/CLIMA_DENGUE_VALLE/`: clima semanal de los cinco municipios (precipitación CHIRPS, temperaturas ERA5). Se versiona; el resto de `ShapeMunicipios/` (shapefiles) queda fuera de Git.
-- `data/DatosProcesados/`: series semanales separadas en entrenamiento, validación y test. Solo `semanal_*.csv` (cinco municipios, menos de 1 MB) se versiona, porque la aplicación desplegada la usa como histórico.
+- `datos/DataRaw/`: CSV anuales reducidos al departamento 76 y a las cinco columnas utilizadas: COD_DPTO_O, COD_MUN_O, SEMANA, ANO e INI_SIN.
+- `datos/DataRawOriginal/`: copia de los archivos completos, conservada localmente y excluida de Git.
+- `datos/ShapeMunicipios/CLIMA_DENGUE_VALLE/`: clima semanal de los cinco municipios (precipitación CHIRPS, temperaturas ERA5). Se versiona; el resto de `ShapeMunicipios/` (shapefiles) queda fuera de Git.
+- `datos/DatosProcesados/`: series semanales separadas en entrenamiento, validación y test. Solo `semanal_*.csv` (cinco municipios, menos de 1 MB) se versiona, porque la aplicación desplegada la usa como histórico.
 - `notebooks/modelado_notebook.py`: construcción de ventanas, arquitecturas, métricas, gráficas y exportación.
 - `notebooks/analisis_validacion.py`: diagnóstico del modelo seleccionado a partir de sus predicciones de validación.
 - `notebooks/exportar_experimentos.py`: copia a `modelos/experimentos/` las tablas y figuras de la comparación de modelos que quedaron en las salidas del notebook. Es lo que se registra en MLflow. Hay que ejecutarlo después de una corrida completa.

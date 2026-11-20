@@ -35,7 +35,7 @@ EQUIPO = [
 ORDEN_CONJUNTOS = [nombre for _, nombre in PERIODOS] + [FUERA]
 ESTATICOS = Path(__file__).resolve().parent / 'static'
 # Código de Google Earth Engine con el que se obtuvo el clima semanal (CHIRPS y ERA5-Land).
-CODIGO_CLIMA = RAIZ / 'data' / 'clima_google_earth_engine.js'
+CODIGO_CLIMA = RAIZ / 'datos' / 'clima_google_earth_engine.js'
 config = cargar_configuracion()
 logging.basicConfig(level=config.nivel_log, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
 log = logging.getLogger('app')
