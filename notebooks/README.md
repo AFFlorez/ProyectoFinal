@@ -47,6 +47,10 @@ Para retomar desde los conjuntos limpios, ejecuta **1, 2 y 9.2** y continúa des
 
 ## Archivos del proyecto
 
+### Comparación Poisson
+
+[`Comparacion_modelo_poisson.ipynb`](Comparacion_modelo_poisson.ipynb) reproduce la preparación, el entrenamiento y la selección de `Comparacion_modelo_poisson.py`. Incluye gráficas de las diez configuraciones, casos observados frente a predichos, errores por municipio y comparación entre validación y prueba. También contrasta Poisson con las métricas exportadas en `modelos/experimentos/`, cuando están disponibles, y genera una interpretación de los resultados. Ejecuta sus celdas en orden con un kernel que tenga NumPy, pandas, scikit-learn y Matplotlib. Las salidas se guardan en `ResultadosModelos/poisson_notebook/`.
+
 El notebook y sus módulos están en `notebooks/`, pero trabajan desde la raíz del repositorio: la primera celda cambia el directorio de trabajo a la raíz. Los datos están en `datos/` (ver [datos/README.md](../datos/README.md)). Los scripts de esta carpeta se ejecutan desde la raíz, por ejemplo `.venv\Scripts\python.exe notebooks\analisis_validacion.py`.
 
 - `datos/DataRaw/`: CSV anuales reducidos al departamento 76 y a las cinco columnas utilizadas: COD_DPTO_O, COD_MUN_O, SEMANA, ANO e INI_SIN.
