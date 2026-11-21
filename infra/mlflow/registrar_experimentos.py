@@ -1,8 +1,10 @@
 """Cargar en MLflow la comparación de modelos y registrar el modelo elegido.
 
 Usa los archivos versionados en modelos/experimentos/ (los genera
-notebooks/exportar_experimentos.py) y el paquete de modelos/. No entrena nada:
-reproduce en MLflow los 100 enfoques evaluados en el notebook.
+notebooks/exportar_experimentos.py), los de la regresión de Poisson en
+modelos/experimentos/poisson/ (notebooks/Comparacion_modelo_poisson.py) y el
+paquete de modelos/. No entrena nada: reproduce en MLflow los 110 enfoques
+comparados (100 del notebook principal y 10 configuraciones de Poisson).
 
     python infra/mlflow/registrar_experimentos.py --tracking http://127.0.0.1:5000 --modelos modelos
 """
@@ -35,6 +37,9 @@ BASELINES = {
     'Random Forest': {'n_estimators': 300, 'max_depth': 12, 'min_samples_leaf': 3},
     'XGBoost': {'n_estimators_max': 800, 'max_depth': 3, 'learning_rate': 0.03, 'early_stopping_rounds': 50},
 }
+POISSON = {'implementacion': 'scikit-learn PoissonRegressor (enlace logarítmico, penalización L2)', 'solver': 'lbfgs',
+           'objetivo_ajuste': 'conteos originales de la semana t+4'}
+AJUSTES_NOTEBOOK = 160  # 100 enfoques; cada enfoque local reúne cinco redes.
 FIGURAS_GENERALES = ['baselines_validacion', 'lstm64_comparacion', 'lstm64_curvas', 'locales_comparacion']
 
 
@@ -77,6 +82,12 @@ def main():
     tres = pd.read_csv(carpeta / 'metricas_tres_conjuntos.csv').set_index('MODELO')
     prueba = pd.read_csv(carpeta / 'evaluacion_prueba.csv').set_index('MODELO')
     elegido = config['nombre']
+    poisson, poisson_prueba, poisson_config = leer_poisson(carpeta / 'poisson')
+    total = len(ranking) + len(poisson)
+    # Posición de cada enfoque al ordenar los 110 por MAE de validación (el RMSE desempata).
+    posiciones = (pd.concat([ranking[['MODELO', 'MAE', 'RMSE']], poisson[['MODELO', 'MAE', 'RMSE']]])
+                  .sort_values(['MAE', 'RMSE']).reset_index(drop=True))
+    posicion = {m: i + 1 for i, m in enumerate(posiciones['MODELO'])}
 
     mlflow.set_tracking_uri(args.tracking)
     experimento = mlflow.set_experiment(EXPERIMENTO)
@@ -84,12 +95,12 @@ def main():
     MlflowClient().set_experiment_tag(experimento.experiment_id, 'mlflow.experimentKind', 'custom_model_development')
     MlflowClient().set_experiment_tag(experimento.experiment_id, 'mlflow.note.content', (
         'Pronóstico de casos de dengue en la semana t+4 para cinco municipios del Valle del Cauca. '
-        'Cada corrida hija es uno de los 100 enfoques comparados en el notebook; el modelo elegido '
-        '(menor MAE de validación) está registrado en Models como pronostico-dengue-t4.'))
+        f'Cada corrida hija es uno de los {total} enfoques comparados (incluida la regresión de Poisson); '
+        'el modelo elegido (menor MAE de validación) está registrado en Models como pronostico-dengue-t4.'))
 
-    with mlflow.start_run(run_name=f'Comparación de 100 enfoques ({config["seleccion"]["ejecucion"]})') as padre:
+    with mlflow.start_run(run_name=f'Comparación de {total} enfoques ({config["seleccion"]["ejecucion"]})') as padre:
         mlflow.log_params({**{k: v for k, v in COMUNES.items() if k != 'objetivo'},
-                           'enfoques': len(ranking), 'ajustes_totales': 160,
+                           'enfoques': total, 'ajustes_totales': AJUSTES_NOTEBOOK + len(poisson),
                            'criterio_seleccion': config['seleccion']['criterio_principal'],
                            'modelo_elegido': elegido})
         mlflow.log_metrics({'mejor_val_mae': float(ranking['MAE'].min()), 'mejor_val_rmse': float(ranking['RMSE'].min())})
@@ -98,6 +109,8 @@ def main():
             'la selección para el modelo elegido y las mejores referencias de cada familia.'), 'tipo': 'comparacion'})
         for archivo in sorted(carpeta.glob('*.csv')):
             mlflow.log_artifact(str(archivo), 'tablas')
+        for archivo in sorted((carpeta / 'poisson').glob('*.*')):
+            mlflow.log_artifact(str(archivo), 'tablas/poisson')
         for nombre in FIGURAS_GENERALES:
             mlflow.log_artifact(str(figuras / f'{nombre}.png'), 'figuras')
 
@@ -106,7 +119,7 @@ def main():
             with mlflow.start_run(run_name=modelo, nested=True) as corrida:
                 mlflow.log_params(parametros(fila))
                 metricas = {'val_mae': fila['MAE'], 'val_rmse': fila['RMSE'],
-                            'val_pronosticos_negativos': fila['PRONOSTICOS_NEGATIVOS'], 'posicion_ranking': fila['POSICION']}
+                            'val_pronosticos_negativos': fila['PRONOSTICOS_NEGATIVOS'], 'posicion_ranking': posicion[modelo]}
                 entrenamiento = baselines.loc[baselines['MODELO'].eq(modelo) & baselines['CONJUNTO'].eq('training')]
                 if not entrenamiento.empty:
                     metricas.update(train_mae=entrenamiento['MAE'].iloc[0], train_rmse=entrenamiento['RMSE'].iloc[0])
@@ -119,13 +132,41 @@ def main():
                 mlflow.set_tags({'familia': fila['FAMILIA'], 'elegido': str(modelo == elegido).lower(),
                                  'evaluado_en_prueba': str(modelo in prueba.index).lower()})
                 if modelo == elegido:
-                    registrar_elegido(args.modelos, figuras, config, corrida.info.run_id)
-    print(f'Registradas {len(ranking)} corridas en el experimento {EXPERIMENTO}.')
+                    registrar_elegido(args.modelos, figuras, config, corrida.info.run_id, total)
+
+        for _, fila in poisson.iterrows():
+            seleccionado = fila['ID'] == poisson_config.get('seleccion')
+            with mlflow.start_run(run_name=fila['MODELO'], nested=True):
+                mlflow.log_params({**COMUNES, **POISSON, 'familia': 'Regresión Poisson',
+                                   'historia_semanas': int(fila['HISTORIA']), 'alpha': float(fila['ALPHA']),
+                                   'max_iter': poisson_config.get('max_iter'), 'tol': poisson_config.get('tol'),
+                                   'convergio': bool(fila['CONVERGIO']), 'iteraciones': int(fila['ITERACIONES']),
+                                   'alcance': 'un modelo para los 5 municipios (one-hot)'})
+                metricas = {'val_mae': fila['MAE'], 'val_rmse': fila['RMSE'], 'val_sesgo_medio': fila['SESGO_MEDIO'],
+                            'posicion_ranking': posicion[fila['MODELO']]}
+                if seleccionado and poisson_prueba is not None:
+                    metricas.update(test_mae=poisson_prueba['MAE_EVALUATION'], test_rmse=poisson_prueba['RMSE_EVALUATION'])
+                mlflow.log_metrics({k: float(v) for k, v in metricas.items()})
+                mlflow.set_tags({'familia': 'Regresión Poisson', 'elegido': 'false',
+                                 'evaluado_en_prueba': str(bool(seleccionado and poisson_prueba is not None)).lower()})
+    print(f'Registradas {total} corridas en el experimento {EXPERIMENTO}.')
 
 
-def registrar_elegido(modelos, figuras, config, run_id):
+def leer_poisson(carpeta):
+    """Configuraciones de Poisson comparadas en validación y evaluación en prueba de la elegida."""
+    if not (carpeta / 'metricas_validacion.csv').is_file():
+        return pd.DataFrame(columns=['ID', 'MODELO', 'MAE', 'RMSE']), None, {}
+    tabla = pd.read_csv(carpeta / 'metricas_validacion.csv', encoding='utf-8-sig')
+    tabla['MODELO'] = [f'Regresión Poisson · alpha {a:g} · {int(h)}s' for a, h in zip(tabla['ALPHA'], tabla['HISTORIA'])]
+    config = json.loads((carpeta / 'configuracion.json').read_text(encoding='utf-8-sig'))
+    archivo_prueba = carpeta / 'metricas_finales.csv'
+    prueba = pd.read_csv(archivo_prueba, encoding='utf-8-sig').iloc[0] if archivo_prueba.is_file() else None
+    return tabla, prueba, config
+
+
+def registrar_elegido(modelos, figuras, config, run_id, total):
     mlflow.set_tag('mlflow.note.content', (
-        f'Modelo elegido: {config["nombre"]}. Menor MAE de validación entre los 100 enfoques. '
+        f'Modelo elegido: {config["nombre"]}. Menor MAE de validación entre los {total} enfoques. '
         'En prueba 2024-2025 (brote mayor que los de entrenamiento) el MAE sube a 38,1 y tiende a subestimar picos.'))
     for figura in sorted(figuras.glob('*.png')):
         if figura.stem not in FIGURAS_GENERALES:
