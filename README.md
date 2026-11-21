@@ -2,7 +2,7 @@
 
 Proyecto de grado · **Maestría en Inteligencia Artificial, Universidad de los Andes** · *Proyecto: Despliegue de Soluciones*
 
-Construimos y desplegamos un sistema que pronostica los **casos de dengue de la semana t+4** (cuatro semanas adelante) en los cinco municipios del Valle del Cauca con más casos: Cali, Guadalajara de Buga, Palmira, Tuluá y Yumbo. Unimos 19 años de notificaciones del SIVIGILA con clima semanal por municipio y comparamos 160 ajustes de modelos, desde regresión lineal hasta redes LSTM globales y locales. Elegimos, por menor error de validación, una **LSTM global de 64 unidades que usa 20 semanas de historia** (MAE de 11,4 casos en validación). Ese modelo quedó desplegado en AWS como una aplicación web para usuarios no técnicos, con una API documentada y un servidor MLflow que reúne la comparación de modelos. Toda la infraestructura se crea desde código con CloudFormation.
+Construimos y desplegamos un sistema que pronostica los **casos de dengue de la semana t+4** (cuatro semanas adelante) en los cinco municipios del Valle del Cauca con más casos: Cali, Guadalajara de Buga, Palmira, Tuluá y Yumbo. Unimos 19 años de notificaciones del SIVIGILA con clima semanal por municipio y comparamos 170 ajustes de modelos, desde regresión lineal y de Poisson hasta redes LSTM globales y locales. Elegimos, por menor error de validación, una **LSTM global de 64 unidades que usa 20 semanas de historia** (MAE de 11,4 casos en validación). Ese modelo quedó desplegado en AWS como una aplicación web para usuarios no técnicos, con una API documentada y un servidor MLflow que reúne la comparación de modelos. Toda la infraestructura se crea desde código con CloudFormation.
 
 | Recurso | Enlace |
 | --- | --- |
@@ -89,7 +89,7 @@ flowchart LR
     B[Clima semanal<br/>por municipio] --> C
     C --> D[Transformaciones<br/>log1p + estandarización]
     D --> E[Ventanas de 8 a 24<br/>semanas, objetivo t+4]
-    E --> F[160 ajustes:<br/>baselines y LSTM]
+    E --> F[170 ajustes:<br/>baselines y LSTM]
     F --> G[Selección por<br/>MAE de validación]
     G --> H[Evaluación única<br/>en prueba 2024-2025]
     H --> I[Exportación y<br/>registro en MLflow]
@@ -110,9 +110,10 @@ Todos los escaladores se ajustan **solo con entrenamiento** y se guardan junto a
 | Grupo | Configuraciones | Ajustes |
 | --- | --- | ---: |
 | Baselines | Regresión lineal, Random Forest (300 árboles, profundidad 12) y XGBoost (profundidad 3, tasa 0,03, hasta 800 rondas) × 5 historias | 15 |
+| Regresión de Poisson | Enlace logarítmico y penalización L2 (alpha 0,01 o 0,1) × 5 historias, ajustada sobre los conteos originales ([notebooks/Comparacion_modelo_poisson.py](notebooks/Comparacion_modelo_poisson.py)) | 10 |
 | LSTM globales | 14 arquitecturas × 5 historias. Una red para los cinco municipios, que recibe además el one-hot del municipio. Varían unidades (16, 32, 64; una a tres capas), capa densa intermedia (0, 8, 16) y Dropout (0; 0,2; 0,5). | 70 |
 | LSTM locales | 3 arquitecturas × 5 historias × 5 municipios: una red independiente por municipio | 75 |
-| **Total** | **100 enfoques** (cada enfoque local reúne sus cinco redes) | **160** |
+| **Total** | **110 enfoques** (cada enfoque local reúne sus cinco redes) | **170** |
 
 Las historias evaluadas son de 8, 12, 16, 20 y 24 semanas. Las redes se entrenaron con Adam (tasa inicial 0,001), lotes de 32, hasta 200 épocas, EarlyStopping (paciencia 20, restaurando los mejores pesos), reducción de la tasa de aprendizaje (paciencia 5) y semilla 42.
 
@@ -126,11 +127,12 @@ Las historias evaluadas son de 8, 12, 16, 20 y 24 semanas. Las redes se entrenar
 | --- | --- | ---: | ---: | ---: |
 | **LSTM global** | **64 unidades · Dense 16 · sin Dropout** | **20** | **11,38** | **26,84** |
 | LSTM local (5 redes) | 16 unidades · Dense 8 | 24 | 12,87 | 30,11 |
+| Regresión de Poisson | alpha 0,01 | 8 | 13,13 | 31,87 |
 | XGBoost | profundidad 3 | 24 | 14,76 | 36,34 |
 | Regresión lineal | — | 12 | 14,84 | 36,87 |
 | Random Forest | 300 árboles | 24 | 14,86 | 36,81 |
 
-La LSTM global reduce el MAE de validación un **23 %** frente al mejor baseline. Los cinco primeros lugares del ranking son LSTM globales de 64 unidades (MAE entre 11,38 y 11,55). Esto sugiere que compartir una sola red entre municipios aprovecha mejor los datos que entrenar una red por municipio, que solo dispone de 756 ventanas de entrenamiento.
+La LSTM global reduce el MAE de validación un **13 %** frente a la regresión de Poisson, el mejor modelo de referencia, y un **23 %** frente a XGBoost. Los cinco primeros lugares del ranking son LSTM globales de 64 unidades (MAE entre 11,38 y 11,55). Esto sugiere que compartir una sola red entre municipios aprovecha mejor los datos que entrenar una red por municipio, que solo dispone de 756 ventanas de entrenamiento.
 
 **Modelo elegido en los tres periodos:**
 
@@ -140,11 +142,11 @@ La LSTM global reduce el MAE de validación un **23 %** frente al mejor baseline
 | Validación (2022-2023) | 505 | 11,38 | 26,84 |
 | Prueba (2024-2025) | 510 | 38,14 | 95,41 |
 
-**Referencias evaluadas en prueba:** regresión lineal (12 semanas) MAE 31,29; XGBoost 40,60; Random Forest 43,47; LSTM local 48,85.
+**Referencias evaluadas en prueba:** regresión lineal (12 semanas) MAE 31,29; regresión de Poisson (8 semanas) MAE 31,77 y el menor RMSE (75,15); XGBoost 40,60; Random Forest 43,47; LSTM local 48,85. En prueba, los dos modelos lineales fueron mejores que la LSTM.
 
 ![Pronósticos del modelo elegido en validación y prueba](modelos/experimentos/figuras/modelo_elegido_validacion_prueba.png)
 
-La comparación completa (los 100 enfoques con sus parámetros, métricas, curvas y figuras) está en MLflow y en `modelos/experimentos/`.
+La comparación completa (los 110 enfoques con sus parámetros, métricas, curvas y figuras) está en MLflow y en `modelos/experimentos/` (los resultados de Poisson, en `modelos/experimentos/poisson/`).
 
 ## Solución desplegada
 
@@ -208,10 +210,10 @@ Ejemplo de respuesta: con las 20 semanas de Cali que terminan el 1 de enero de 2
 
 ### Seguimiento de experimentos con MLflow
 
-Los 160 ajustes se hicieron en el notebook, que guarda sus resultados en tablas y figuras. Para darles trazabilidad, `notebooks/exportar_experimentos.py` extrae esos resultados a `modelos/experimentos/`, y el contenedor de MLflow los registra al iniciar:
+Los 170 ajustes se hicieron en el notebook principal y en `notebooks/Comparacion_modelo_poisson.py`, que guardan sus resultados en tablas y figuras. Para darles trazabilidad, `notebooks/exportar_experimentos.py` extrae esos resultados a `modelos/experimentos/` (Poisson, a `modelos/experimentos/poisson/`), y el contenedor de MLflow los registra al iniciar:
 
-- Una corrida principal (*Comparación de 100 enfoques*) con las tablas y figuras generales.
-- **100 corridas hijas**, una por enfoque, con sus parámetros (familia, arquitectura, historia, Dropout, número de parámetros, configuración de entrenamiento) y métricas (MAE y RMSE de validación; de entrenamiento y prueba cuando existen). Se pueden ordenar y comparar.
+- Una corrida principal (*Comparación de 110 enfoques*) con las tablas y figuras generales.
+- **110 corridas hijas**, una por enfoque (incluidas las 10 configuraciones de Poisson), con sus parámetros (familia, arquitectura, historia, Dropout, número de parámetros, configuración de entrenamiento) y métricas (MAE y RMSE de validación; de entrenamiento y prueba cuando existen). Se pueden ordenar y comparar.
 - En la corrida del modelo elegido: su curva de aprendizaje, los pronósticos por municipio, la comparación con XGBoost y los archivos del modelo.
 - El modelo en el **Model Registry** (`pronostico-dengue-t4`, versión 1, alias `produccion`), etiquetado con sus métricas y versiones.
 
@@ -267,7 +269,7 @@ Otras decisiones:
 - **Ventanas no independientes.** Las ventanas se solapan, por lo que las métricas no provienen de observaciones independientes.
 - **Alcance.** El modelo cubre solo cinco municipios y necesita 20 semanas completas y consecutivas; no imputa faltantes. Es una herramienta de apoyo y no reemplaza el criterio de los equipos de vigilancia.
 
-**Aportes.** Comparación sistemática de 100 enfoques con un criterio de selección explícito, un pronóstico interpretable (casos, nivel de alerta y desempeño histórico) para usuarios no técnicos, y un despliegue reproducible con trazabilidad de experimentos.
+**Aportes.** Comparación sistemática de 110 enfoques con un criterio de selección explícito, un pronóstico interpretable (casos, nivel de alerta y desempeño histórico) para usuarios no técnicos, y un despliegue reproducible con trazabilidad de experimentos.
 
 ## Trabajo futuro
 
@@ -275,7 +277,7 @@ Otras decisiones:
 - Agregar intervalos de predicción (regresión por cuantiles o predicción conformal) para comunicar la incertidumbre.
 - Probar variables que ayuden a anticipar brotes atípicos: serotipo circulante, índices entomológicos o fenómenos como El Niño.
 - Extender el modelo a más municipios y departamentos.
-- Registrar en MLflow las curvas por época de los 160 ajustes desde el propio entrenamiento.
+- Registrar en MLflow las curvas por época de los 170 ajustes desde el propio entrenamiento.
 - Para un uso real: dominio con HTTPS, autenticación, varias instancias con balanceador y monitoreo de deriva de los datos.
 
 ## Despliegue, dependencias y uso

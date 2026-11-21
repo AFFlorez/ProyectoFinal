@@ -19,7 +19,8 @@ Las siete variables temporales son casos, temperaturas media/máxima/mínima, pr
 | Baselines | Regresión lineal, Random Forest y XGBoost, con las cinco historias | 15 |
 | LSTM globales | Catorce estructuras, con las cinco historias | 70 |
 | LSTM locales | Tres estructuras × cinco historias × cinco municipios | 75 |
-| Total | 100 enfoques al reunir las cinco redes de cada enfoque local | **160** |
+| Regresión de Poisson | Diez configuraciones (alpha 0,01 y 0,1 × cinco historias), en `Comparacion_modelo_poisson.py` | 10 |
+| Total | 110 enfoques al reunir las cinco redes de cada enfoque local | **170** |
 
 Las estructuras globales incluyen la referencia LSTM32 + Dense16, la variante sin Dense intermedia, Dropout de 0,20 y 0,50, dos y tres capas, LSTM16 + Dense8, seis opciones LSTM64 (Dense16, Dense8 y sin Dense intermedia, con Dropout de 0 y 0,20) y dos capas de 32 con Dense16. Todas conservan una salida lineal de una neurona y reciben el one-hot municipal.
 
@@ -49,7 +50,7 @@ Para retomar desde los conjuntos limpios, ejecuta **1, 2 y 9.2** y continúa des
 
 ### Comparación Poisson
 
-[`Comparacion_modelo_poisson.ipynb`](Comparacion_modelo_poisson.ipynb) reproduce la preparación, el entrenamiento y la selección de `Comparacion_modelo_poisson.py`. Incluye gráficas de las diez configuraciones, casos observados frente a predichos, errores por municipio y comparación entre validación y prueba. También contrasta Poisson con las métricas exportadas en `modelos/experimentos/`, cuando están disponibles, y genera una interpretación de los resultados. Ejecuta sus celdas en orden con un kernel que tenga NumPy, pandas, scikit-learn y Matplotlib. Las salidas se guardan en `ResultadosModelos/poisson_notebook/`.
+[`Comparacion_modelo_poisson.ipynb`](Comparacion_modelo_poisson.ipynb) reproduce la preparación, el entrenamiento y la selección de `Comparacion_modelo_poisson.py`. Incluye gráficas de las diez configuraciones, casos observados frente a predichos, errores por municipio y comparación entre validación y prueba. También contrasta Poisson con las métricas exportadas en `modelos/experimentos/`, cuando están disponibles, y genera una interpretación de los resultados. Ejecuta sus celdas en orden con un kernel que tenga NumPy, pandas, scikit-learn y Matplotlib. Las salidas se guardan en `ResultadosModelos/poisson_notebook/`. El script escribe sus resultados en `ResultadosModelos/poisson/` (carpeta local, fuera de Git); la copia versionada que usan MLflow y el informe está en `modelos/experimentos/poisson/`.
 
 El notebook y sus módulos están en `notebooks/`, pero trabajan desde la raíz del repositorio: la primera celda cambia el directorio de trabajo a la raíz. Los datos están en `datos/` (ver [datos/README.md](../datos/README.md)). Los scripts de esta carpeta se ejecutan desde la raíz, por ejemplo `.venv\Scripts\python.exe notebooks\analisis_validacion.py`.
 

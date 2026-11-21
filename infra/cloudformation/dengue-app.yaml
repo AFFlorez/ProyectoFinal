@@ -116,7 +116,7 @@ Parameters:
     Type: String
     Default: 'true'
     AllowedValues: ['true', 'false']
-    Description: Servidor MLflow con los 100 enfoques comparados y el modelo registrado (misma instancia e IP).
+    Description: Servidor MLflow con los 110 enfoques comparados y el modelo registrado (misma instancia e IP).
   PuertoMlflow:
     Type: Number
     Default: 5000
@@ -307,7 +307,7 @@ Outputs:
       - Ip: !If [ConIpElastica, !Ref IpElastica, !GetAtt Instancia.PublicIp]
   UrlMlflow:
     Condition: ConMlflow
-    Description: MLflow con los 100 enfoques comparados y el modelo registrado
+    Description: MLflow con los 110 enfoques comparados y el modelo registrado
     Value: !Sub
       - 'http://${Ip}:${PuertoMlflow}/'
       - Ip: !If [ConIpElastica, !Ref IpElastica, !GetAtt Instancia.PublicIp]
