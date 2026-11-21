@@ -1,0 +1,19 @@
+{
+  "seleccion": "poisson_v8_alpha0.01",
+  "criterio": "menor MAE validacion solo entre convergidos",
+  "horizonte": "t+4",
+  "historias": [
+    8,
+    12,
+    16,
+    20,
+    24
+  ],
+  "alphas": [
+    0.01,
+    0.1
+  ],
+  "max_iter": 6000,
+  "tol": 1e-06,
+  "uso_test": "no se utilizo para seleccion"
+}
